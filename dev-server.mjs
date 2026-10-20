@@ -20,6 +20,19 @@ import handler from './api/generate.js';
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PORT = process.env.PORT || 3000;
 
+// Load .env automatically (no dependencies) — real environment variables win.
+try {
+  const envFile = await readFile(join(ROOT, '.env'), 'utf8');
+  for (const line of envFile.split('\n')) {
+    const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m && !process.env[m[1]]) {
+      process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+  }
+} catch {
+  /* no .env file — rely on real environment */
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
