@@ -18,7 +18,16 @@
 
 const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash';
 // Fallbacks tried automatically if the primary model is unavailable/retired.
-const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash-lite'];
+// Gemini 3.x is now the required family for new users — keep 2.x only as last resort.
+const FALLBACK_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.8-flash',
+  'gemini-3-flash',
+  'gemini-3-pro',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.5-flash-lite',
+];
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Read credentials at request time so env changes are always picked up. */
