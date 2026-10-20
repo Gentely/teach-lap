@@ -411,54 +411,82 @@ async function refreshSupervisorData() {
 }
 
 function initAuthHandlers() {
+  // Legacy tabs are now hidden two-box layout — keep compat but don't require them
   const tabTeacher = document.getElementById('auth-tab-teacher');
   const tabAdmin = document.getElementById('auth-tab-admin');
   const panelTeacher = document.getElementById('auth-teacher-panel');
   const panelAdmin = document.getElementById('auth-admin-panel');
-  tabTeacher.addEventListener('click', () => { tabTeacher.className = 'flex-1 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-extrabold'; tabAdmin.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-sm font-bold'; panelTeacher.classList.remove('hidden'); panelAdmin.classList.add('hidden'); });
-  tabAdmin.addEventListener('click', () => { tabAdmin.className = 'flex-1 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-extrabold'; tabTeacher.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-sm font-bold'; panelAdmin.classList.remove('hidden'); panelTeacher.classList.add('hidden'); });
+  if (tabTeacher && panelTeacher && panelAdmin) {
+    tabTeacher.addEventListener('click', () => { tabTeacher.className = 'flex-1 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-extrabold'; if (tabAdmin) tabAdmin.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-sm font-bold'; panelTeacher.classList.remove('hidden'); panelAdmin.classList.add('hidden'); });
+    if (tabAdmin) tabAdmin.addEventListener('click', () => { tabAdmin.className = 'flex-1 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-extrabold'; tabTeacher.className = 'flex-1 py-2.5 rounded-xl text-slate-600 text-sm font-bold'; panelAdmin.classList.remove('hidden'); panelTeacher.classList.add('hidden'); });
+  }
 
-  // Teacher login/register
-  document.getElementById('teacher-login-form').addEventListener('submit', async e => {
-    e.preventDefault();
+  async function handleTeacherLogin(e) {
+    if (e) e.preventDefault();
     const codeEl = document.getElementById('teacher-code');
-    const code = codeEl.value.trim();
-    const msg = document.getElementById('auth-msg-teacher'); msg.textContent = '';
-    if (!code) { msg.textContent = t('err_code_required'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; return; }
-    // If admin code entered in teacher tab, route to admin login automatically
+    const code = (codeEl?.value || '').trim();
+    const msg = document.getElementById('auth-msg-teacher');
+    const btn = document.getElementById('btn-teacher-submit');
+    if (msg) msg.textContent = '';
+    if (!code) { if (msg) { msg.textContent = t('err_code_required'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; } toast(t('err_code_required'), 'error'); return; }
+    // Admin code in teacher box -> route to admin
     if (code.toUpperCase() === 'ENAS-SUPERVISOR') {
-      msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500';
-      try { const p = await auth.loginAsAdmin({ code }); onLoginSuccess(p); return; } catch (err) { msg.textContent = err.message || String(err); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; return; }
+      if (msg) { msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500'; }
+      if (btn) { btn.disabled = true; btn.textContent = state.lang === 'ar' ? 'جاري...' : 'Checking...'; }
+      try { const p = await auth.loginAsAdmin({ code }); onLoginSuccess(p); return; } catch (err) { console.error('[admin-via-teacher]', err); if (msg) { msg.textContent = err.message || String(err); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; } toast(err.message || String(err), 'error'); return; } finally { if (btn) { btn.disabled = false; btn.textContent = state.lang === 'ar' ? 'دخول / تفعيل الرمز' : 'Login'; } }
     }
     let fullName = document.getElementById('t-fullname')?.value.trim() || '';
     let title = document.getElementById('t-title')?.value.trim() || '';
     let subjects = document.getElementById('t-subjects')?.value.trim() || '';
     let years = document.getElementById('t-years')?.value.trim() || '';
-    msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500';
+    if (msg) { msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500'; }
+    if (btn) { btn.disabled = true; btn.textContent = state.lang === 'ar' ? 'جاري...' : 'Checking...'; }
     try {
+      console.log('[teacher-login] code=', code);
       const profile = await auth.redeemInvite({ code, fullName: fullName || undefined, title, subjects, academicYear: years });
       onLoginSuccess(profile); return;
     } catch (err) {
       const errMsg = err?.message || String(err) || '';
-      console.warn('[login]', errMsg, err);
-      // Always show message; also expand onboarding as hint (optional)
-      const onboarding = document.getElementById('teacher-onboarding');
-      if (onboarding && onboarding.classList.contains('hidden')) {
-        // hint to show optional profile fields, but login should have succeeded — only show for invalid code
-        if (errMsg.includes(t('err_code_invalid')) || errMsg.toLowerCase().includes('invalid')) {
-          // keep onboarding hidden — just show error; user should ask Enas for correct code
-        }
-      }
-      msg.textContent = errMsg || t('toast_error'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold';
-    }
-  });
+      console.warn('[teacher-login-error]', errMsg, err);
+      if (msg) { msg.textContent = errMsg || t('toast_error'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; }
+      toast(errMsg || t('toast_error'), 'error');
+    } finally { if (btn) { btn.disabled = false; btn.textContent = state.lang === 'ar' ? 'دخول / تفعيل الرمز' : 'Login'; } }
+  }
 
-  document.getElementById('admin-login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const code = document.getElementById('admin-code').value.trim();
-    const msg = document.getElementById('auth-msg-admin'); msg.textContent = '';
-    try { const p = await auth.loginAsAdmin({ code }); onLoginSuccess(p); } catch (err) { msg.textContent = err.message; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; }
-  });
+  async function handleAdminLogin(e) {
+    if (e) e.preventDefault();
+    const codeEl = document.getElementById('admin-code');
+    const code = (codeEl?.value || '').trim();
+    const msg = document.getElementById('auth-msg-admin');
+    const btn = document.getElementById('btn-admin-submit');
+    if (msg) msg.textContent = '';
+    if (!code) { if (msg) { msg.textContent = t('err_code_required'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; } toast(t('err_code_required'), 'error'); return; }
+    if (msg) { msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500'; }
+    if (btn) { btn.disabled = true; btn.textContent = state.lang === 'ar' ? 'جاري...' : 'Checking...'; }
+    try {
+      console.log('[admin-login] code=', code);
+      const p = await auth.loginAsAdmin({ code });
+      onLoginSuccess(p);
+    } catch (err) {
+      console.error('[admin-login-error]', err);
+      const em = err?.message || String(err) || t('toast_error');
+      if (msg) { msg.textContent = em; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; }
+      toast(em, 'error');
+    } finally { if (btn) { btn.disabled = false; btn.textContent = state.lang === 'ar' ? 'دخول المشرفة' : 'Login'; } }
+  }
+
+  // Attach both submit and click handlers for maximum mobile compatibility
+  const teacherForm = document.getElementById('teacher-login-form');
+  const adminForm = document.getElementById('admin-login-form');
+  const btnTeacher = document.getElementById('btn-teacher-submit');
+  const btnAdmin = document.getElementById('btn-admin-submit');
+  if (teacherForm) teacherForm.addEventListener('submit', handleTeacherLogin);
+  if (adminForm) adminForm.addEventListener('submit', handleAdminLogin);
+  if (btnTeacher) btnTeacher.addEventListener('click', (ev) => { ev.preventDefault(); handleTeacherLogin(ev); });
+  if (btnAdmin) btnAdmin.addEventListener('click', (ev) => { ev.preventDefault(); handleAdminLogin(ev); });
+  // Also allow Enter key directly on inputs
+  document.getElementById('teacher-code')?.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); handleTeacherLogin(ev); }});
+  document.getElementById('admin-code')?.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); handleAdminLogin(ev); }});
 
   document.getElementById('btn-logout').addEventListener('click', () => auth.logout());
 
