@@ -424,38 +424,32 @@ function initAuthHandlers() {
     const codeEl = document.getElementById('teacher-code');
     const code = codeEl.value.trim();
     const msg = document.getElementById('auth-msg-teacher'); msg.textContent = '';
+    if (!code) { msg.textContent = t('err_code_required'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; return; }
     // If admin code entered in teacher tab, route to admin login automatically
     if (code.toUpperCase() === 'ENAS-SUPERVISOR') {
-      try { const p = await auth.loginAsAdmin({ code }); onLoginSuccess(p); return; } catch (err) { msg.textContent = err.message; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; return; }
+      msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500';
+      try { const p = await auth.loginAsAdmin({ code }); onLoginSuccess(p); return; } catch (err) { msg.textContent = err.message || String(err); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; return; }
     }
-    const onboarding = document.getElementById('teacher-onboarding');
-    const needOnboarding = !onboarding.classList.contains('hidden') || onboarding.dataset.armed === '1';
-    let fullName = document.getElementById('t-fullname').value.trim();
-    let title = document.getElementById('t-title').value.trim();
-    let subjects = document.getElementById('t-subjects').value.trim();
-    let years = document.getElementById('t-years').value.trim();
+    let fullName = document.getElementById('t-fullname')?.value.trim() || '';
+    let title = document.getElementById('t-title')?.value.trim() || '';
+    let subjects = document.getElementById('t-subjects')?.value.trim() || '';
+    let years = document.getElementById('t-years')?.value.trim() || '';
     msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500';
     try {
-      // Allow direct login if profile already exists (via auth helper which handles fallback)
       const profile = await auth.redeemInvite({ code, fullName: fullName || undefined, title, subjects, academicYear: years });
-      // If we got here without fullName and it's a new invite, redeemInvite will have shown onboarding need? Actually it handles admin code above.
-      // Check if onboarding needed: redeemInvite throws err_code_invalid when no invite and not admin
       onLoginSuccess(profile); return;
     } catch (err) {
-      // If it's a new invite and we haven't shown onboarding, show it
-      const errMsg = err.message || '';
-      if (!needOnboarding && (errMsg.includes(t('err_code_invalid')) || errMsg.includes('رمز جديد'))) {
-        // Try to detect if it's a fresh code that needs onboarding: show onboarding
-        onboarding.classList.remove('hidden'); onboarding.dataset.armed = '1';
-        msg.textContent = state.lang === 'ar' ? 'رمز جديد — أكمل بياناتك (الاسم، الصفة، المواد، السنوات) ثم اضغط دخول مرة أخرى.' : 'New code — complete your profile and submit again.';
-        msg.className = 'text-xs text-center mt-3 min-h-[18px] text-brand-700 font-bold';
-        return;
+      const errMsg = err?.message || String(err) || '';
+      console.warn('[login]', errMsg, err);
+      // Always show message; also expand onboarding as hint (optional)
+      const onboarding = document.getElementById('teacher-onboarding');
+      if (onboarding && onboarding.classList.contains('hidden')) {
+        // hint to show optional profile fields, but login should have succeeded — only show for invalid code
+        if (errMsg.includes(t('err_code_invalid')) || errMsg.toLowerCase().includes('invalid')) {
+          // keep onboarding hidden — just show error; user should ask Enas for correct code
+        }
       }
-      if (errMsg.includes('أدخل اسمك') || errMsg.includes('full name')) {
-        onboarding.classList.remove('hidden');
-        msg.textContent = errMsg; msg.className = 'text-xs text-center mt-3 text-red-600 font-bold'; return;
-      }
-      msg.textContent = err.message; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold';
+      msg.textContent = errMsg || t('toast_error'); msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold';
     }
   });
 
