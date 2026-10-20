@@ -74,7 +74,7 @@ Browser renders results · saves lectures/analyses/comments/reflections ──�
 2. Open **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql) and run it.
 3. Go to **Project Settings → API** and copy:
    - **Project URL** (e.g. `https://abcdefgh.supabase.co`)
-   - **anon public** key
+   - **Publishable key** (new dashboards show `sb_publishable_...`) or legacy **anon public** key
 4. Open [`supabase.js`](supabase.js) and fill in the two constants at the top:
 
 ```js
