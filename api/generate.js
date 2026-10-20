@@ -16,7 +16,7 @@
  * variable `process.env.GEMINI_API_KEY` — it is never exposed to the browser.
  * ========================================================================== */
 
-const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash';
+const GEMINI_MODEL_DEFAULT = 'gemini-2.0-flash';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Read credentials at request time so env changes are always picked up. */
