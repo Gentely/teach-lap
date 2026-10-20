@@ -4,15 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SABRATHA ELT Tech-Assistant | مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</title>
-  <meta name="description" content="مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة. Generate pedagogical summaries, SAMR/TPACK core concepts, Libyan classroom applications, scenario Q&A and reflection tasks from your lectures using Google Gemini." />
+  <meta name="description" content="مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة. Private platform supervised by Enas Mesbah Omar." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230F4C5C'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23E3B23C' font-family='Arial'%3E%E2%9C%8E%3C/text%3E%3C/svg%3E" />
-
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -23,18 +19,12 @@
             gold: { 700: '#A67C00', 600: '#C99700', 500: '#E3B23C', 100: '#FBF1D6' },
             sand: '#FBF8F3',
           },
-          fontFamily: {
-            tajawal: ['Tajawal', 'sans-serif'],
-            inter: ['Inter', 'sans-serif'],
-          },
-          boxShadow: {
-            card: '0 10px 30px -12px rgba(11, 60, 73, 0.18)',
-          },
+          fontFamily: { tajawal: ['Tajawal', 'sans-serif'], inter: ['Inter', 'sans-serif'] },
+          boxShadow: { card: '0 10px 30px -12px rgba(11, 60, 73, 0.18)' },
         },
       },
     };
   </script>
-
   <style>
     html[lang="ar"] body { font-family: 'Tajawal', sans-serif; }
     html[lang="en"] body { font-family: 'Inter', sans-serif; }
@@ -50,9 +40,8 @@
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: #F2F9FB; }
     ::-webkit-scrollbar-thumb { background: #9DBEC8; border-radius: 8px; }
-    ::-webkit-scrollbar-thumb:hover { background: #2A8FA8; }
     @media print {
-      header, footer, #hero, #input-section, #course-section, #classroom-section, #sidebar, #features-section, .no-print, #loading-overlay, #toast-container { display: none !important; }
+      header, footer, #hero, #input-section, #course-section, #classroom-section, #sidebar, #features-section, .no-print, #loading-overlay, #toast-container, #auth-overlay { display: none !important; }
       #results-section { display: block !important; }
       .tab-panel { display: block !important; }
       body { background: #fff; }
@@ -62,31 +51,102 @@
 
 <body class="bg-sand text-slate-800 antialiased">
 
+  <!-- ======================= AUTH OVERLAY (PRIVATE SITE) ======================= -->
+  <div id="auth-overlay" class="fixed inset-0 z-[70] bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-4">
+      <div class="bg-brand-900 text-white p-6 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center text-2xl font-extrabold mx-auto">S</div>
+        <h1 class="mt-3 text-xl font-extrabold">SABRATHA ELT Tech-Assistant</h1>
+        <p class="text-xs text-brand-100 mt-1">مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</p>
+        <p class="text-[11px] text-gold-500 font-bold mt-2">🔒 موقع خاص — بإشراف الأستاذة إيناس مصباح عمر</p>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- Tabs -->
+        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+          <button id="auth-tab-teacher" class="flex-1 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-extrabold">دخول الأستاذ</button>
+          <button id="auth-tab-admin" class="flex-1 py-2.5 rounded-xl text-slate-600 text-sm font-bold">المشرفة إيناس</button>
+        </div>
+
+        <!-- Teacher login / register -->
+        <div id="auth-teacher-panel">
+          <p class="text-xs text-slate-500 text-center mb-4">أدخل رمز الدعوة الذي أرسلته لك المشرفة إيناس. إذا لم يكن لديك رمز، تواصل معها.</p>
+          <form id="teacher-login-form" class="space-y-3">
+            <input id="teacher-code" type="text" maxlength="32" required placeholder="رمز الدعوة — مثال: ELT-A1B2C3"
+              class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-center font-mono tracking-widest uppercase" />
+            <div id="teacher-onboarding" class="hidden space-y-3 border-t-2 border-slate-100 pt-4">
+              <p class="text-sm font-extrabold text-brand-900">أكمل ملفك الشخصي</p>
+              <input id="t-fullname" type="text" maxlength="80" required placeholder="الاسم الكامل *"
+                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+              <input id="t-title" type="text" maxlength="80" placeholder="الصفة — مثال: أستاذ مساعد / محاضر"
+                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+              <input id="t-subjects" type="text" maxlength="200" placeholder="المواد التي تدرّسها — مثال: ELT, Linguistics"
+                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+              <input id="t-years" type="text" maxlength="200" placeholder="السنوات الدراسية — مثال: السنة الثانية والثالثة"
+                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+              <p class="text-xs text-slate-400">بعد حفظها ستنشأ صفحتك الخاصة حسب سنواتك ومقرراتك.</p>
+            </div>
+            <button type="submit" class="w-full py-3 rounded-xl bg-brand-800 text-white font-extrabold hover:bg-brand-900 transition">دخول / تفعيل الرمز</button>
+          </form>
+          <p id="auth-msg-teacher" class="text-xs text-center mt-3 min-h-[18px]"></p>
+        </div>
+
+        <!-- Admin login -->
+        <div id="auth-admin-panel" class="hidden">
+          <p class="text-xs text-slate-500 text-center mb-4">دخول المشرفة العامة فقط. الرمز الافتراضي: <span class="font-mono font-bold text-brand-800">ENAS-SUPERVISOR</span></p>
+          <form id="admin-login-form" class="space-y-3">
+            <input id="admin-code" type="text" maxlength="32" required placeholder="رمز المشرفة"
+              class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-center font-mono tracking-widest uppercase" />
+            <button type="submit" class="w-full py-3 rounded-xl bg-gold-500 text-brand-900 font-extrabold hover:bg-gold-600 transition">دخول المشرفة</button>
+          </form>
+          <p id="auth-msg-admin" class="text-xs text-center mt-3 min-h-[18px]"></p>
+        </div>
+
+        <p class="text-[11px] text-slate-400 text-center border-t border-slate-100 pt-4">لا يظهر محتوى الموقع إلا بعد تسجيل الدخول برمز صحيح.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= ONBOARDING MODAL (incomplete profile) ======================= -->
+  <div id="onboarding-modal" class="hidden fixed inset-0 z-[68] bg-brand-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6">
+      <h3 class="text-lg font-extrabold text-brand-900">أكمل بياناتك</h3>
+      <p class="text-sm text-slate-500 mt-1">حتى تُجهّز صفحتك الخاصة حسب سنواتك وموادك.</p>
+      <form id="onboarding-form" class="space-y-3 mt-5">
+        <input id="ob-fullname" type="text" maxlength="80" required placeholder="الاسم الكامل *"
+          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+        <input id="ob-title" type="text" maxlength="80" placeholder="الصفة"
+          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+        <input id="ob-subjects" type="text" maxlength="200" placeholder="المواد التي تدرّسها"
+          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+        <input id="ob-years" type="text" maxlength="200" placeholder="السنوات الدراسية"
+          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+        <button type="submit" class="w-full py-3 rounded-xl bg-brand-800 text-white font-extrabold">حفظ وفتح صفحتي</button>
+      </form>
+    </div>
+  </div>
+
   <!-- ======================= HEADER ======================= -->
   <header class="sticky top-0 z-40 bg-brand-900/95 backdrop-blur text-white shadow-lg">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16 sm:h-20 gap-3">
-        <!-- Brand -->
         <a href="#" class="flex items-center gap-3 min-w-0">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center text-xl sm:text-2xl font-extrabold shadow-md shrink-0">S</div>
           <div class="min-w-0">
             <h1 class="text-base sm:text-xl font-extrabold leading-tight truncate">SABRATHA ELT Tech-Assistant</h1>
-            <p class="text-[11px] sm:text-xs text-brand-100 truncate">مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</p>
+            <p class="text-[11px] sm:text-xs text-brand-100 truncate">كلية الآداب والتربية — قسم اللغة الإنجليزية</p>
           </div>
         </a>
-
-        <!-- Actions -->
         <div class="flex items-center gap-2 shrink-0">
+          <div id="user-badge" class="hidden items-center gap-2 bg-white/10 rounded-xl px-3 py-2 text-xs">
+            <span id="user-name" class="font-bold"></span>
+            <span id="user-role" class="px-2 py-0.5 rounded-full bg-gold-500 text-brand-900 font-extrabold text-[10px]"></span>
+          </div>
+          <button id="btn-logout" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-xs font-bold">خروج</button>
           <a href="#classroom-section" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-5.17 0-9.728-3.116-11.962-7.962A11.944 11.944 0 0112 3a11.944 11.944 0 0111.962 7.962c0 .225-.012.447-.037.666A3 3 0 0018 18.72z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/></svg>
             <span data-i18n="nav_classroom">إدارة الصف</span>
           </a>
-          <button id="btn-print" class="no-print hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a4.24 4.24 0 010-8.484m0 8.484c.24-.034.48-.066.72-.096m-.72.096l-4.24 4.242h13.28L18 13.83m-9.28 2.172l2.286-2.286m0 0l2.286 2.286M12 6.75v5.25"/></svg>
-            <span data-i18n="nav_print">طباعة</span>
-          </button>
           <button id="btn-lang" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gold-500 text-brand-900 hover:bg-gold-600 transition text-sm font-extrabold shadow">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>
             <span id="btn-lang-label">EN</span>
           </button>
         </div>
@@ -97,45 +157,35 @@
   <!-- ======================= HERO ======================= -->
   <section id="hero" class="relative overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
     <div class="absolute inset-0 opacity-15" style="background-image: radial-gradient(circle at 85% 15%, #E3B23C 0, transparent 42%), radial-gradient(circle at 12% 88%, #2A8FA8 0, transparent 45%);"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-      <div class="grid lg:grid-cols-5 gap-10 items-center">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div class="grid lg:grid-cols-5 gap-8 items-center">
         <div class="lg:col-span-3">
           <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs sm:text-sm font-semibold">
             <span class="w-2 h-2 rounded-full bg-gold-500 animate-pulse"></span>
             <span data-i18n="hero_badge">كلية الآداب والتربية — قسم اللغة الإنجليزية</span>
           </span>
-          <h2 class="mt-5 text-3xl sm:text-5xl font-extrabold leading-tight">
-            <span data-i18n="hero_title">توظيف التكنولوجيا في تدريس اللغة الإنجليزية</span>
-          </h2>
-          <p class="mt-4 text-base sm:text-lg text-brand-100 max-w-2xl leading-relaxed" data-i18n="hero_sub">
-            الصق محتوى المحاضرة أو ارفعه، ودع المساعد الذكي يُنتج لك ملخصًا تربويًا، مفاهيم جوهرية (SAMR، TPACK، التعلم المدمج)، تطبيقات عملية للصفوف الليبية، سيناريوهات وأسئلة بنماذج إجابة، ومهام تأمل ونقاش تفاعلية.
-          </p>
-          <div class="mt-7 flex flex-wrap gap-3">
-            <a href="#input-section" class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gold-500 text-brand-900 font-extrabold shadow-lg hover:bg-gold-600 transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
-              <span data-i18n="hero_cta">ابدأ الآن</span>
-            </a>
-            <a href="#features-section" class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/10 border border-white/25 font-bold hover:bg-white/20 transition">
-              <span data-i18n="hero_learn_more">ماذا يُنتج المساعد؟</span>
-            </a>
+          <h2 class="mt-4 text-3xl sm:text-4xl font-extrabold leading-tight" data-i18n="hero_title">توظيف التكنولوجيا في تدريس اللغة الإنجليزية</h2>
+          <p class="mt-3 text-base text-brand-100 max-w-2xl leading-relaxed" data-i18n="hero_sub">منصة خاصة بإشراف الأستاذة إيناس مصباح عمر — لكل أستاذ صفحته ومقرراته وطلبته.</p>
+          <div id="hero-profile" class="hidden mt-4 p-4 rounded-2xl bg-white/10 border border-white/20 text-sm">
+            <p class="font-extrabold" id="hero-welcome"></p>
+            <p class="text-brand-100 text-xs mt-1" id="hero-subjects"></p>
+            <p class="text-brand-100 text-xs" id="hero-years"></p>
           </div>
         </div>
-
-        <!-- Hero mini-card -->
         <div class="lg:col-span-2">
-          <div class="rounded-3xl bg-white/10 border border-white/20 p-6 backdrop-blur-sm shadow-2xl">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-11 h-11 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold text-lg">AI</div>
+          <div class="rounded-3xl bg-white/10 border border-white/20 p-5 backdrop-blur-sm shadow-2xl">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold">AI</div>
               <div>
-                <p class="font-extrabold">Google Gemini</p>
-                <p class="text-xs text-brand-100" data-i18n="hero_card_sub">مدعوم بالذكاء الاصطناعي — مجاني بالكامل</p>
+                <p class="font-extrabold text-sm">Google Gemini</p>
+                <p class="text-xs text-brand-100" data-i18n="hero_card_sub">مدعوم بالذكاء الاصطناعي</p>
               </div>
             </div>
-            <ul class="space-y-2.5 text-sm">
-              <li class="flex items-start gap-2.5"><svg class="w-5 h-5 text-gold-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z" clip-rule="evenodd"/></svg><span data-i18n="hero_feat_1">ملخصات تربوية ومفاهيم جوهرية</span></li>
-              <li class="flex items-start gap-2.5"><svg class="w-5 h-5 text-gold-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z" clip-rule="evenodd"/></svg><span data-i18n="hero_feat_2">خلاصات وتطبيقات للصفوف الليبية</span></li>
-              <li class="flex items-start gap-2.5"><svg class="w-5 h-5 text-gold-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z" clip-rule="evenodd"/></svg><span data-i18n="hero_feat_3">سيناريوهات وأسئلة بنماذج إجابة</span></li>
-              <li class="flex items-start gap-2.5"><svg class="w-5 h-5 text-gold-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0l-3.5-3.5a1 1 0 111.4-1.4l2.8 2.79 6.8-6.79a1 1 0 011.4 0z" clip-rule="evenodd"/></svg><span data-i18n="hero_feat_4">مهام تأمل ونقاش تفاعلية</span></li>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_1">ملخصات تربوية ومفاهيم جوهرية</span></li>
+              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_2">تطبيقات للصفوف الليبية</span></li>
+              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_3">سيناريوهات بنماذج إجابة</span></li>
+              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_4">مهام تأمل</span></li>
             </ul>
           </div>
         </div>
@@ -143,462 +193,261 @@
     </div>
   </section>
 
+  <!-- ======================= SUPERVISOR PANEL (Enas only) ======================= -->
+  <section id="supervisor-panel" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+    <div class="bg-gradient-to-l from-gold-500 to-gold-600 rounded-3xl p-6 shadow-card">
+      <h3 class="text-lg font-extrabold text-brand-900 flex items-center gap-2">👑 لوحة المشرفة العامة — الأستاذة إيناس مصباح عمر</h3>
+      <p class="text-sm text-brand-900/80 mt-1">أدخل اسم الأستاذ ثم ولّد له رمز دعوة خاص — لا يراه إلا أنت وهو.</p>
+      <form id="generate-code-form" class="mt-4 flex flex-wrap gap-3">
+        <input id="new-teacher-name" type="text" maxlength="80" required placeholder="اسم الأستاذ / الأستاذة — مثال: د. أحمد علي"
+          class="flex-1 min-w-[200px] rounded-xl border-2 border-white focus:border-brand-800 outline-none px-4 py-3 text-sm" />
+        <button type="submit" class="px-6 py-3 rounded-xl bg-brand-900 text-white font-extrabold hover:bg-brand-800 transition">⚡ توليد كود</button>
+      </form>
+      <div id="generated-code-box" class="hidden mt-4 p-4 bg-white rounded-2xl border-2 border-brand-900">
+        <p class="text-xs font-bold text-slate-500">الرمز المولّد لـ <span id="gen-for-name" class="text-brand-900"></span>:</p>
+        <div class="mt-2 flex items-center gap-3">
+          <code id="gen-code" class="flex-1 font-mono text-lg font-extrabold tracking-widest text-brand-900"></code>
+          <button id="btn-copy-code" class="px-4 py-2 rounded-xl bg-brand-800 text-white text-xs font-bold">نسخ</button>
+          <button id="btn-share-code" class="px-4 py-2 rounded-xl bg-gold-500 text-brand-900 text-xs font-bold">مشاركة</button>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">أرسل هذا الرمز للأستاذ — به يسجل دخوله ويكمل ملفه (الاسم، الصفة، المواد، السنوات) وتُفتح صفحته الخاصة.</p>
+      </div>
+      <div class="mt-6">
+        <h4 class="font-extrabold text-brand-900 text-sm">الأساتذة المضافون</h4>
+        <div id="teachers-list" class="mt-3 grid sm:grid-cols-2 gap-3"></div>
+      </div>
+      <div class="mt-6">
+        <h4 class="font-extrabold text-brand-900 text-sm">الأكواد المولّدة</h4>
+        <div id="invites-list" class="mt-3 space-y-2"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ======================= SUPABASE SETUP NOTICE ======================= -->
   <div id="setup-notice" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-    <div class="rounded-2xl border-2 border-dashed border-gold-500 bg-gold-100/70 p-4 sm:p-5 flex items-start gap-3">
-      <svg class="w-6 h-6 text-gold-700 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+    <div class="rounded-2xl border-2 border-dashed border-gold-500 bg-gold-100/70 p-4 flex items-start gap-3">
+      <div class="text-gold-700">⚠️</div>
       <div>
-        <p class="font-extrabold text-gold-700" data-i18n="setup_title">قاعدة البيانات غير مهيأة بعد (Supabase)</p>
-        <p class="text-sm text-slate-700 mt-1" data-i18n="setup_text">أضف بيانات Supabase في ملف supabase.js لتفعيل حفظ المحاضرات ومحادثات النقاش. التوليد بالذكاء الاصطناعي يعمل بدونها.</p>
+        <p class="font-extrabold text-gold-700">قاعدة البيانات غير مهيأة بعد (Supabase)</p>
+        <p class="text-sm text-slate-700 mt-1">شغّل <code>supabase/upgrade_private.sql</code> في SQL Editor لتفعيل النظام الخاص.</p>
       </div>
     </div>
   </div>
 
   <!-- ======================= MAIN ======================= -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-
-    <!-- ============ INPUT + SIDEBAR ============ -->
+  <main id="main-content" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="grid lg:grid-cols-3 gap-8">
 
       <!-- INPUT CARD -->
       <section id="input-section" class="lg:col-span-2 scroll-mt-24">
         <div class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden">
           <div class="bg-gradient-to-l from-brand-800 to-brand-700 text-white px-6 sm:px-8 py-5">
-            <h3 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2.5">
+            <h3 class="text-xl font-extrabold flex items-center gap-2.5">
               <span class="w-9 h-9 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold">1</span>
               <span data-i18n="step1_title">أدخل محتوى المحاضرة</span>
             </h3>
-            <p class="text-brand-100 text-sm mt-1" data-i18n="step1_sub">الصق النص أو ارفع ملفًا (TXT, Word, PDF) — كلما كان المحتوى أدق، كانت النتائج أفضل</p>
+            <p class="text-brand-100 text-sm mt-1" data-i18n="step1_sub">الصق النص أو ارفع ملفًا (TXT, Word, PDF)</p>
           </div>
-
-          <div class="p-6 sm:p-8 space-y-6">
-            <!-- Course + Title row -->
+          <div class="p-6 sm:p-8 space-y-5">
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
-                <label for="course-select" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_course">المادة / المقرر</label>
-                <select id="course-select" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 bg-white text-slate-800 transition">
+                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_course">المادة / المقرر</label>
+                <select id="course-select" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 bg-white text-slate-800 transition">
                   <option value="" data-i18n="opt_no_course">— بدون مادة (عام) —</option>
                 </select>
               </div>
               <div>
-                <label for="lecture-title" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_title">عنوان المحاضرة</label>
-                <input id="lecture-title" type="text" maxlength="200"
-                  class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition"
-                  data-i18n-placeholder="ph_title" placeholder="مثال: نموذج SAMR وتوظيف التكنولوجيا في الصف" />
+                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_title">عنوان المحاضرة</label>
+                <input id="lecture-title" type="text" maxlength="200" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 transition" data-i18n-placeholder="ph_title" placeholder="مثال: نموذج SAMR" />
               </div>
             </div>
-
-            <!-- Date + Time row -->
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
-                <label for="lecture-date" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_date">تاريخ المحاضرة</label>
-                <input id="lecture-date" type="date"
-                  class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition" />
+                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_date">تاريخ المحاضرة</label>
+                <input id="lecture-date" type="date" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 transition" />
               </div>
               <div>
-                <label for="lecture-time" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_time">وقت المحاضرة</label>
-                <input id="lecture-time" type="time"
-                  class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition" />
+                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_time">وقت المحاضرة</label>
+                <input id="lecture-time" type="time" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 transition" />
               </div>
             </div>
-
-            <!-- Textarea -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
-                <label for="lecture-text" class="block text-sm font-bold text-slate-700" data-i18n="label_text">محتوى المحاضرة</label>
+                <label class="block text-sm font-bold text-slate-700" data-i18n="label_text">محتوى المحاضرة</label>
                 <span class="text-xs text-slate-400"><span id="char-count">0</span> <span data-i18n="chars_word">حرف</span></span>
               </div>
-              <textarea id="lecture-text" rows="9"
-                class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 leading-relaxed transition resize-y"
-                data-i18n-placeholder="ph_text" placeholder="الصق هنا نص المحاضرة الكاملة..."></textarea>
+              <textarea id="lecture-text" rows="8" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 leading-relaxed transition resize-y" data-i18n-placeholder="ph_text" placeholder="الصق هنا نص المحاضرة..."></textarea>
             </div>
-
-            <!-- Drop zone -->
-            <div id="drop-zone" class="drop-zone border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center hover:border-brand-500 hover:bg-brand-50 transition cursor-pointer">
-              <input id="file-input" type="file" class="hidden" accept=".txt,.md,.markdown,.text,.docx,.doc,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword" />
-              <svg class="w-10 h-10 mx-auto text-brand-500" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-              <p class="mt-2 text-sm font-bold text-slate-600" data-i18n="drop_title">اسحب ملفًا هنا أو اضغط للاختيار</p>
-              <p class="text-xs text-slate-400 mt-1" data-i18n="drop_hint">يدعم: TXT, MD, Word (.docx), PDF — حتى 80 ألف حرف</p>
+            <div id="drop-zone" class="drop-zone border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:border-brand-500 hover:bg-brand-50 transition cursor-pointer">
+              <input id="file-input" type="file" class="hidden" accept=".txt,.md,.docx,.doc,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+              <p class="text-sm font-bold text-slate-600" data-i18n="drop_title">اسحب ملفًا هنا أو اضغط للاختيار</p>
+              <p class="text-xs text-slate-400 mt-1" data-i18n="drop_hint">TXT, Word (.docx), PDF — حتى 80 ألف حرف</p>
               <p id="file-name" class="text-xs font-bold text-brand-700 mt-2 hidden"></p>
               <p id="file-status" class="text-xs text-slate-400 mt-1 hidden"></p>
             </div>
-
-            <!-- Options row -->
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
-                <label for="output-language" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_output_lang">لغة النتائج</label>
-                <select id="output-language" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 bg-white text-slate-800 transition">
+                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_output_lang">لغة النتائج</label>
+                <select id="output-language" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 bg-white text-slate-800 transition">
                   <option value="ar" data-i18n="opt_ar">العربية</option>
                   <option value="en" data-i18n="opt_en">الإنجليزية</option>
-                  <option value="bilingual" data-i18n="opt_bilingual">ثنائي اللغة (عربي + إنجليزي)</option>
+                  <option value="bilingual" data-i18n="opt_bilingual">ثنائي اللغة</option>
                 </select>
               </div>
               <div class="flex items-end gap-2">
                 <button id="btn-sample" class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-brand-50 text-brand-800 border-2 border-brand-100 font-bold hover:bg-brand-100 transition text-sm">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
                   <span data-i18n="btn_sample">مثال جاهز</span>
                 </button>
                 <button id="btn-clear" class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-50 text-slate-600 border-2 border-slate-200 font-bold hover:bg-slate-100 transition text-sm">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                   <span data-i18n="btn_clear">مسح</span>
                 </button>
               </div>
             </div>
-
-            <!-- Generate -->
-            <button id="btn-generate"
-              class="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-brand-800 text-white text-lg font-extrabold shadow-lg hover:bg-brand-900 active:scale-[0.99] transition">
-              <svg class="w-6 h-6 text-gold-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
+            <button id="btn-generate" class="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-brand-800 text-white text-lg font-extrabold shadow-lg hover:bg-brand-900 transition">
               <span data-i18n="btn_generate">توليد المحتوى التعليمي</span>
             </button>
-            <p class="text-xs text-slate-400 text-center -mt-2" data-i18n="generate_note">يتم التوليد بواسطة Google Gemini — النص لا يُرسل إلا للخدمة، والمفتاح محمي على الخادم.</p>
+            <p class="text-xs text-slate-400 text-center -mt-2" data-i18n="generate_note">بواسطة Google Gemini — المفتاح محمي على الخادم.</p>
           </div>
         </div>
       </section>
 
-      <!-- SIDEBAR: COURSES + SAVED LECTURES -->
+      <!-- SIDEBAR -->
       <aside id="sidebar" class="space-y-6">
-        <!-- Courses card -->
         <div id="course-section" class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden scroll-mt-28">
           <div class="bg-gradient-to-l from-gold-500 to-gold-600 text-brand-900 px-6 py-4 flex items-center justify-between">
-            <h3 class="text-base font-extrabold flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-              <span data-i18n="courses_title">المواد / المقررات</span>
-            </h3>
+            <h3 class="text-base font-extrabold flex items-center gap-2" data-i18n="courses_title">المواد / المقررات</h3>
             <span id="courses-count" class="px-2.5 py-0.5 rounded-full bg-brand-900 text-gold-500 text-xs font-bold">0</span>
           </div>
           <div class="p-4 space-y-4">
-            <div id="courses-list" class="space-y-2 max-h-[320px] overflow-y-auto">
-              <p id="courses-empty" class="text-sm text-slate-400 text-center py-4" data-i18n="courses_empty">لا توجد مواد بعد — أضف مادتك الأولى.</p>
-            </div>
+            <div id="courses-list" class="space-y-2 max-h-[300px] overflow-y-auto"></div>
             <form id="course-form" class="space-y-2 border-t-2 border-slate-100 pt-4">
-              <input id="course-title" type="text" maxlength="120" required
-                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm"
-                data-i18n-placeholder="ph_course_title" placeholder="مثال: Employing Technology in ELT" />
-              <input id="course-desc" type="text" maxlength="200"
-                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm"
-                data-i18n-placeholder="ph_course_desc" placeholder="وصف مختصر (اختياري)" />
+              <input id="course-title" type="text" maxlength="120" required class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" data-i18n-placeholder="ph_course_title" placeholder="مثال: Employing Technology in ELT" />
+              <input id="course-desc" type="text" maxlength="200" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" data-i18n-placeholder="ph_course_desc" placeholder="وصف مختصر (اختياري)" />
               <button type="submit" class="w-full px-4 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-bold hover:bg-brand-900 transition" data-i18n="btn_add_course">إضافة مادة</button>
             </form>
           </div>
         </div>
-
-        <!-- Saved lectures card -->
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden lg:sticky lg:top-28">
+        <div class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden">
           <div class="bg-brand-800 text-white px-6 py-5 flex items-center justify-between">
-            <h3 class="text-base font-extrabold flex items-center gap-2">
-              <svg class="w-5 h-5 text-gold-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
-              <span data-i18n="sidebar_title">المحاضرات المحفوظة</span>
-            </h3>
+            <h3 class="text-base font-extrabold flex items-center gap-2" data-i18n="sidebar_title">المحاضرات المحفوظة</h3>
             <span id="saved-count" class="px-2.5 py-0.5 rounded-full bg-white/15 text-xs font-bold">0</span>
           </div>
-          <div id="saved-list" class="p-4 space-y-3 max-h-[400px] overflow-y-auto">
-            <p id="saved-empty" class="text-sm text-slate-400 text-center py-8" data-i18n="sidebar_empty">لا توجد محاضرات محفوظة بعد.</p>
-          </div>
+          <div id="saved-list" class="p-4 space-y-3 max-h-[350px] overflow-y-auto"></div>
         </div>
       </aside>
     </div>
 
-    <!-- ============ CLASSROOM MANAGEMENT ============ -->
-    <section id="classroom-section" class="mt-12 scroll-mt-28">
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h3 class="text-2xl sm:text-3xl font-extrabold text-brand-900 flex items-center gap-2.5">
-          <span class="w-9 h-9 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold text-sm">★</span>
+    <!-- CLASSROOM -->
+    <section id="classroom-section" class="mt-10 scroll-mt-28">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <h3 class="text-xl font-extrabold text-brand-900 flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold text-sm">★</span>
           <span data-i18n="classroom_title">إدارة الصف</span>
         </h3>
-        <p class="text-sm text-slate-500" data-i18n="classroom_sub">اختر المادة من الأعلى أولًا — ثم سجّل الحضور والدرجات.</p>
+        <p class="text-xs text-slate-500" data-i18n="classroom_sub">حسب سنواتك — كل محاضرة بمكانها.</p>
       </div>
-
-      <!-- Classroom tabs -->
-      <div class="flex flex-wrap gap-2 mb-6 no-print">
-        <button data-ctab="attendance" class="classroom-tab-btn tab-active px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 01-2.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-          <span data-i18n="tab_attendance">الحضور والغياب</span>
-        </button>
-        <button data-ctab="grades" class="classroom-tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          <span data-i18n="tab_grades">الدرجات</span>
-        </button>
+      <div class="flex flex-wrap gap-2 mb-4 no-print">
+        <button data-ctab="attendance" class="classroom-tab-btn tab-active px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_attendance">الحضور والغياب</button>
+        <button data-ctab="grades" class="classroom-tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_grades">الدرجات</button>
       </div>
-
-      <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 sm:p-8">
-        <!-- Attendance panel -->
+      <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6">
         <div id="classroom-attendance">
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="attendance_title">سجل الحضور والغياب</span>
-          </h4>
-          <p class="text-sm text-slate-500 mb-6" data-i18n="attendance_hint">اختر تاريخ الجلسة وسجّل حالة كل طالب — النسبة المئوية تُحسب تلقائيًا.</p>
+          <h4 class="font-extrabold text-brand-900 flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-gold-500"></span><span data-i18n="attendance_title">سجل الحضور</span></h4>
           <div id="attendance-body"></div>
         </div>
-
-        <!-- Grades panel -->
         <div id="classroom-grades" class="hidden">
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="grades_title">سجل الدرجات</span>
-          </h4>
-          <p class="text-sm text-slate-500 mb-6" data-i18n="grades_sub">أعمال السنة — الحضور والغياب — الاختبارات والامتحانات. المجموع يُحسب تلقائيًا.</p>
+          <h4 class="font-extrabold text-brand-900 flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-gold-500"></span><span data-i18n="grades_title">سجل الدرجات</span></h4>
           <div id="grades-body"></div>
         </div>
       </div>
     </section>
 
-    <!-- ============ RESULTS ============ -->
-    <section id="results-section" class="hidden mt-12 scroll-mt-28">
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h3 class="text-2xl sm:text-3xl font-extrabold text-brand-900 flex items-center gap-2.5">
-          <span class="w-9 h-9 rounded-xl bg-brand-800 text-gold-500 flex items-center justify-center font-extrabold">2</span>
+    <!-- RESULTS -->
+    <section id="results-section" class="hidden mt-10 scroll-mt-28">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <h3 class="text-xl font-extrabold text-brand-900 flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-brand-800 text-gold-500 flex items-center justify-center font-extrabold">2</span>
           <span data-i18n="results_title">النتائج التفاعلية</span>
         </h3>
         <div class="flex items-center gap-2 no-print">
-          <button id="btn-copy-all" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border-2 border-brand-100 text-brand-800 font-bold text-sm hover:bg-brand-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
-            <span data-i18n="btn_copy_all">نسخ الكل</span>
-          </button>
-          <button id="btn-print-2" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-800 text-white font-bold text-sm hover:bg-brand-900 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a4.24 4.24 0 010-8.484m0 8.484c.24-.034.48-.066.72-.096m-.72.096l-4.24 4.242h13.28L18 13.83m-9.28 2.172l2.286-2.286m0 0l2.286 2.286M12 6.75v5.25"/></svg>
-            <span data-i18n="btn_print">طباعة</span>
-          </button>
+          <button id="btn-copy-all" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border-2 border-brand-100 text-brand-800 font-bold text-sm hover:bg-brand-50 transition" data-i18n="btn_copy_all">نسخ الكل</button>
+          <button id="btn-print-2" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-800 text-white font-bold text-sm hover:bg-brand-900 transition" data-i18n="btn_print">طباعة</button>
         </div>
       </div>
-
-      <!-- Tabs -->
-      <div class="flex flex-wrap gap-2 mb-6 no-print" role="tablist">
-        <button data-tab="summary" class="tab-btn tab-active px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-          <span data-i18n="tab_summary">الملخص والمفاهيم</span>
-        </button>
-        <button data-tab="takeaways" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
-          <span data-i18n="tab_takeaways">الخلاصات والتطبيقات</span>
-        </button>
-        <button data-tab="scenarios" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/></svg>
-          <span data-i18n="tab_scenarios">السيناريوهات والأسئلة</span>
-        </button>
-        <button data-tab="reflections" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
-          <span data-i18n="tab_reflections">مهام التأمل</span>
-        </button>
-        <button data-tab="discussion" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
-          <span data-i18n="tab_discussion">لوحة النقاش</span>
-        </button>
+      <div class="flex flex-wrap gap-2 mb-4 no-print" role="tablist">
+        <button data-tab="summary" class="tab-btn tab-active px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_summary">الملخص والمفاهيم</button>
+        <button data-tab="takeaways" class="tab-btn px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_takeaways">الخلاصات والتطبيقات</button>
+        <button data-tab="scenarios" class="tab-btn px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_scenarios">السيناريوهات</button>
+        <button data-tab="reflections" class="tab-btn px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_reflections">مهام التأمل</button>
       </div>
-
-      <!-- Panels -->
       <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 sm:p-8">
-
-        <!-- Panel: Summary -->
         <div id="panel-summary" class="tab-panel fade-in">
-          <div class="flex items-start justify-between gap-3 mb-4">
-            <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-              <span data-i18n="summary_title">الملخص التربوي</span>
-            </h4>
-            <button class="btn-copy no-print" data-copy-target="summary-text">
-              <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 text-xs font-bold hover:bg-brand-100 transition" data-i18n="btn_copy">نسخ</span>
-            </button>
-          </div>
-          <p id="summary-text" class="leading-loose text-slate-700 text-[15px] sm:text-base"></p>
-
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mt-10 mb-4">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="concepts_title">المفاهيم الجوهرية</span>
-          </h4>
+          <div class="flex items-start justify-between gap-3 mb-3"><h4 class="text-lg font-extrabold text-brand-900" data-i18n="summary_title">الملخص التربوي</h4><button class="btn-copy no-print" data-copy-target="summary-text"><span class="px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 text-xs font-bold" data-i18n="btn_copy">نسخ</span></button></div>
+          <p id="summary-text" class="leading-loose text-slate-700 text-[15px]"></p>
+          <h4 class="text-lg font-extrabold text-brand-900 flex items-center gap-2 mt-8 mb-3" data-i18n="concepts_title">المفاهيم الجوهرية</h4>
           <div id="concepts-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
-
-        <!-- Panel: Takeaways -->
         <div id="panel-takeaways" class="tab-panel hidden fade-in">
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-4">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="takeaways_title">الخلاصات الرئيسية</span>
-          </h4>
-          <ul id="takeaways-list" class="space-y-3"></ul>
-
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mt-10 mb-4">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="applications_title">تطبيقات عملية للصفوف الليبية</span>
-          </h4>
-          <div id="applications-list" class="grid sm:grid-cols-2 gap-4"></div>
+          <h4 class="text-lg font-extrabold text-brand-900 mb-3" data-i18n="takeaways_title">الخلاصات الرئيسية</h4><ul id="takeaways-list" class="space-y-3"></ul>
+          <h4 class="text-lg font-extrabold text-brand-900 mt-8 mb-3" data-i18n="applications_title">تطبيقات للصفوف الليبية</h4><div id="applications-list" class="grid sm:grid-cols-2 gap-4"></div>
         </div>
-
-        <!-- Panel: Scenarios -->
         <div id="panel-scenarios" class="tab-panel hidden fade-in">
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="scenarios_title">سيناريوهات صفية وأسئلة بنماذج إجابة</span>
-          </h4>
-          <p class="text-sm text-slate-500 mb-6" data-i18n="scenarios_hint">اضغط على السؤال لعرض نموذج الإجابة — تدرب عليها استعدادًا للامتحان.</p>
-          <div id="scenarios-list" class="space-y-4"></div>
+          <h4 class="text-lg font-extrabold text-brand-900 mb-1" data-i18n="scenarios_title">سيناريوهات وأسئلة</h4><div id="scenarios-list" class="space-y-4 mt-4"></div>
         </div>
-
-        <!-- Panel: Reflections -->
         <div id="panel-reflections" class="tab-panel hidden fade-in">
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="reflections_title">مهام التأمل الطلابية</span>
-          </h4>
-          <p class="text-sm text-slate-500 mb-6" data-i18n="reflections_hint">اكتب تأملك واحفظه ليطلع عليه الزملاء والمحاضر.</p>
-          <div id="reflections-list" class="space-y-6"></div>
-        </div>
-
-        <!-- Panel: Discussion -->
-        <div id="panel-discussion" class="tab-panel hidden fade-in">
-          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
-            <span data-i18n="discussion_title">لوحة النقاش</span>
-          </h4>
-          <p class="text-sm text-slate-500 mb-6" data-i18n="discussion_hint">شارك رأيك في أسئلة النقاش، ورد على زملائك.</p>
-
-          <!-- Discussion questions -->
-          <div class="rounded-2xl bg-brand-50 border border-brand-100 p-5 mb-8">
-            <h5 class="font-extrabold text-brand-900 mb-3 flex items-center gap-2">
-              <svg class="w-5 h-5 text-gold-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
-              <span data-i18n="discussion_qs_title">أسئلة النقاش المقترحة</span>
-            </h5>
-            <ul id="discussion-questions" class="space-y-2.5"></ul>
-          </div>
-
-          <!-- Comment form -->
-          <div class="rounded-2xl border-2 border-slate-100 p-5 mb-8 no-print">
-            <form id="comment-form" class="space-y-4">
-              <div class="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label for="comment-name" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_name">الاسم</label>
-                  <input id="comment-name" type="text" maxlength="80" required
-                    class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-2.5 transition"
-                    data-i18n-placeholder="ph_name" placeholder="اسمك أو اسمك المستعار" />
-                </div>
-                <div>
-                  <label for="comment-role" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_role">الصفة</label>
-                  <select id="comment-role" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-2.5 bg-white transition">
-                    <option value="student" data-i18n="role_student">طالب/طالبة</option>
-                    <option value="professor" data-i18n="role_professor">محاضر/ة</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label for="comment-content" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_comment">تعليقك</label>
-                <textarea id="comment-content" rows="3" maxlength="2000" required
-                  class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-2.5 transition resize-y"
-                  data-i18n-placeholder="ph_comment" placeholder="اكتب تعليقك هنا..."></textarea>
-              </div>
-              <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-800 text-white font-bold hover:bg-brand-900 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
-                <span data-i18n="btn_comment_submit">نشر التعليق</span>
-              </button>
-            </form>
-          </div>
-
-          <!-- Comments list -->
-          <div class="flex items-center gap-2 mb-4">
-            <h5 class="font-extrabold text-brand-900" data-i18n="comments_title">التعليقات</h5>
-            <span id="comments-count" class="px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-800 text-xs font-bold">0</span>
-          </div>
-          <div id="comments-list" class="space-y-4">
-            <p id="comments-empty" class="text-sm text-slate-400 py-4" data-i18n="comments_empty">كن أول من يعلّق على هذه المحاضرة.</p>
-          </div>
+          <h4 class="text-lg font-extrabold text-brand-900 mb-1" data-i18n="reflections_title">مهام التأمل الطلابية</h4><div id="reflections-list" class="space-y-6 mt-4"></div>
         </div>
       </div>
     </section>
 
-    <!-- ============ FEATURES ============ -->
-    <section id="features-section" class="mt-16 scroll-mt-24">
-      <div class="text-center max-w-2xl mx-auto">
-        <h3 class="text-2xl sm:text-3xl font-extrabold text-brand-900" data-i18n="features_title">ماذا يُنتج المساعد لك؟</h3>
-        <p class="mt-3 text-slate-600" data-i18n="features_sub">أربعة مخرجات تعليمية مصممة لمقررات كلية الآداب والتربية — قسم اللغة الإنجليزية.</p>
-      </div>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
-        <!-- F1 -->
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 hover:-translate-y-1 transition">
-          <div class="w-12 h-12 rounded-2xl bg-brand-800 text-gold-500 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-          </div>
-          <h4 class="font-extrabold text-brand-900 text-lg" data-i18n="feat1_title">ملخصات تربوية ومفاهيم</h4>
-          <p class="mt-2 text-sm text-slate-600 leading-relaxed" data-i18n="feat1_text">ملخص دقيق للمحاضرة مع المفاهيم الجوهرية: SAMR، TPACK، التعلم المدمج، نظريات التعلم وأكثر.</p>
+    <!-- FEATURES — compact collapsible -->
+    <section id="features-section" class="mt-10 scroll-mt-24">
+      <details class="bg-white rounded-3xl shadow-card border border-brand-100 p-6">
+        <summary class="flex items-center justify-between cursor-pointer">
+          <h3 class="text-base font-extrabold text-brand-900" data-i18n="features_title">ماذا يُنتج المساعد لك؟</h3>
+          <span class="chevron text-brand-700 text-xl">▾</span>
+        </summary>
+        <div class="grid sm:grid-cols-4 gap-4 mt-6 text-sm">
+          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat1_title">ملخصات ومفاهيم</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat1_text">ملخص دقيق مع SAMR، TPACK...</p></div>
+          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat2_title">خلاصات ليبية</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat2_text">تطبيقات للصفوف الليبية</p></div>
+          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat3_title">سيناريوهات</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat3_text">أسئلة بنماذج إجابة</p></div>
+          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat4_title">تأمل</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat4_text">مهام تأمل تفاعلية</p></div>
         </div>
-        <!-- F2 -->
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 hover:-translate-y-1 transition">
-          <div class="w-12 h-12 rounded-2xl bg-brand-800 text-gold-500 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
-          </div>
-          <h4 class="font-extrabold text-brand-900 text-lg" data-i18n="feat2_title">خلاصات وتطبيقات ليبية</h4>
-          <p class="mt-2 text-sm text-slate-600 leading-relaxed" data-i18n="feat2_text">خلاصات سريعة وتطبيقات عملية واقعية للصفوف الليبية: أفكار جاهزة للتنفيذ حتى مع موارد محدودة.</p>
-        </div>
-        <!-- F3 -->
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 hover:-translate-y-1 transition">
-          <div class="w-12 h-12 rounded-2xl bg-brand-800 text-gold-500 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/></svg>
-          </div>
-          <h4 class="font-extrabold text-brand-900 text-lg" data-i18n="feat3_title">سيناريوهات ونماذج إجابة</h4>
-          <p class="mt-2 text-sm text-slate-600 leading-relaxed" data-i18n="feat3_text">أسئلة سيناريوهات واقعية بنماذج إجابة قوية، مصممة على نمط أسئلة الامتحانات الجامعية.</p>
-        </div>
-        <!-- F4 -->
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 hover:-translate-y-1 transition">
-          <div class="w-12 h-12 rounded-2xl bg-brand-800 text-gold-500 flex items-center justify-center mb-4">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
-          </div>
-          <h4 class="font-extrabold text-brand-900 text-lg" data-i18n="feat4_title">تأمل ونقاش تفاعلي</h4>
-          <p class="mt-2 text-sm text-slate-600 leading-relaxed" data-i18n="feat4_text">مهام تأمل شخصية وجماعية ولوحة نقاش تفاعلية تربط الطلاب والمحاضرين في مساحة واحدة.</p>
-        </div>
-      </div>
+      </details>
     </section>
   </main>
 
-  <!-- ======================= FOOTER ======================= -->
-  <footer class="bg-brand-900 text-brand-100 mt-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div class="grid sm:grid-cols-3 gap-8">
+  <footer class="bg-brand-900 text-brand-100 mt-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid sm:grid-cols-3 gap-6 text-sm">
         <div>
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center text-xl font-extrabold">S</div>
-            <div>
-              <p class="font-extrabold text-white">SABRATHA ELT Tech-Assistant</p>
-              <p class="text-xs">مساعد تكنولوجيا تدريس اللغة الإنجليزية</p>
-            </div>
-          </div>
-          <p class="mt-4 text-sm leading-relaxed" data-i18n="footer_about">تطبيق تعليمي مجاني مفتوح لطلبة ومحاضري قسم اللغة الإنجليزية — كلية الآداب والتربية، جامعة صبراتة.</p>
+          <p class="font-extrabold text-white">SABRATHA ELT Tech-Assistant</p>
+          <p class="text-xs mt-2" data-i18n="footer_about">تطبيق تعليمي خاص — كلية الآداب والتربية، جامعة صبراتة.</p>
         </div>
         <div>
-          <h4 class="font-extrabold text-white mb-3" data-i18n="footer_course">المقرر</h4>
-          <p class="text-sm" data-i18n="footer_course_name">Employing Technology in ELT — وجميع مقررات القسم</p>
-          <p class="text-sm mt-1 text-brand-100/80" data-i18n="footer_course_hint">أضف موادك من قسم «المواد / المقررات» أعلاه</p>
+          <h4 class="font-extrabold text-white mb-2" data-i18n="footer_course">المقررات</h4>
+          <p id="footer-mycourses" class="text-xs text-brand-100/80"></p>
         </div>
         <div>
-          <h4 class="font-extrabold text-white mb-3" data-i18n="footer_tech">التقنيات</h4>
-          <p class="text-sm">HTML5 · Tailwind CSS · Vanilla JS</p>
-          <p class="text-sm mt-1">Vercel Serverless · Google Gemini API</p>
-          <p class="text-sm mt-1">Supabase (PostgreSQL) · Mammoth · PDF.js</p>
+          <h4 class="font-extrabold text-white mb-2">التقنيات</h4>
+          <p class="text-xs">Vercel · Gemini API · Supabase</p>
         </div>
       </div>
-      <div class="border-t border-white/10 mt-8 pt-6 text-center">
+      <div class="border-t border-white/10 mt-6 pt-4 text-center">
         <p class="text-sm font-bold text-white" data-i18n="footer_credit">إعداد وإشراف: الأستاذة إيناس مصباح عمر — Enas Mesbah Omar</p>
-        <p class="text-xs mt-2 text-brand-100/70" data-i18n="footer_rights">© 2026 جامعة صبراتة — كلية الآداب والتربية — قسم اللغة الإنجليزية. جميع الحقوق محفوظة.</p>
+        <p class="text-xs mt-1 text-brand-100/70" data-i18n="footer_rights">© 2026 جامعة صبراتة — كلية الآداب والتربية — قسم اللغة الإنجليزية.</p>
       </div>
     </div>
   </footer>
 
-  <!-- ======================= LOADING OVERLAY ======================= -->
   <div id="loading-overlay" class="hidden fixed inset-0 z-50 bg-brand-900/70 backdrop-blur-sm flex items-center justify-center">
     <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center">
-      <div class="relative w-20 h-20 mx-auto">
-        <div class="absolute inset-0 rounded-full border-4 border-brand-100"></div>
-        <div class="absolute inset-0 rounded-full border-4 border-brand-800 border-t-transparent animate-spin"></div>
-        <div class="absolute inset-0 flex items-center justify-center text-2xl">✍️</div>
-      </div>
-      <h4 class="mt-6 text-lg font-extrabold text-brand-900" data-i18n="loading_title">جارٍ توليد المحتوى التعليمي...</h4>
-      <p class="mt-2 text-sm text-slate-500" data-i18n="loading_sub">يقرأ Gemini المحاضرة ويجهّز الملخص والتطبيقات والأسئلة. قد يستغرق ذلك حتى دقيقة.</p>
+      <div class="relative w-20 h-20 mx-auto"><div class="absolute inset-0 rounded-full border-4 border-brand-100"></div><div class="absolute inset-0 rounded-full border-4 border-brand-800 border-t-transparent animate-spin"></div><div class="absolute inset-0 flex items-center justify-center text-2xl">✍️</div></div>
+      <h4 class="mt-6 text-lg font-extrabold text-brand-900" data-i18n="loading_title">جارٍ توليد المحتوى...</h4>
       <p id="file-loading-text" class="hidden mt-3 text-xs font-bold text-brand-700"></p>
     </div>
   </div>
-
-  <!-- ======================= TOASTS ======================= -->
   <div id="toast-container" class="fixed bottom-6 inset-x-0 z-[60] flex flex-col items-center gap-2 px-4 pointer-events-none"></div>
-
-  <!-- File parsers: Mammoth (DOCX) + PDF.js -->
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.2/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
