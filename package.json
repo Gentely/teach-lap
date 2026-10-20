@@ -1,0 +1,26 @@
+{
+  "name": "sabratha-elt-tech-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SABRATHA ELT Tech-Assistant — مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة. Generates pedagogical summaries, Libyan-classroom applications, scenario Q&A and reflection tasks from lecture content using the Google Gemini API.",
+  "scripts": {
+    "dev": "vercel dev",
+    "dev:node": "node dev-server.mjs",
+    "start": "vercel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ELT",
+    "educational-technology",
+    "SAMR",
+    "TPACK",
+    "Gemini",
+    "Supabase",
+    "Vercel",
+    "Sabratha-University"
+  ],
+  "license": "MIT"
+}
