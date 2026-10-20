@@ -4,12 +4,13 @@
  * SABRATHA ELT Tech-Assistant (مساعد تكنولوجيا تدريس اللغة الإنجليزية)
  * Sabratha University — Faculty of Arts & Education — Department of English
  * ----------------------------------------------------------------------------
- * Vanilla JS SPA controller: bilingual UI (AR/EN), lecture input & file upload,
- * Gemini generation via /api/generate, results rendering, reflection tasks and
- * the discussion board (persisted with Supabase via supabase.js).
+ * Vanilla JS SPA: bilingual UI (AR/EN), multi-course support, file upload
+ * (TXT/MD/DOCX/PDF via Mammoth + PDF.js), Gemini generation, results,
+ * classroom management (attendance & grades via classroom.js), discussion board.
  * ========================================================================== */
 
 import * as db from './supabase.js';
+import { initClassroom, setCourse as classroomSetCourse } from './classroom.js';
 
 /* ==========================================================================
  * Internationalisation (AR default / EN)
@@ -18,8 +19,9 @@ import * as db from './supabase.js';
 const I18N = {
   ar: {
     nav_print: 'طباعة',
+    nav_classroom: 'إدارة الصف',
     btn_print: 'طباعة',
-    hero_badge: 'كلية الآداب والتعليم — قسم اللغة الإنجليزية',
+    hero_badge: 'كلية الآداب والتربية — قسم اللغة الإنجليزية',
     hero_title: 'توظيف التكنولوجيا في تدريس اللغة الإنجليزية',
     hero_sub: 'الصق محتوى المحاضرة أو ارفعه، ودع المساعد الذكي يُنتج لك ملخصًا تربويًا، مفاهيم جوهرية (SAMR، TPACK، التعلم المدمج)، تطبيقات عملية للصفوف الليبية، سيناريوهات وأسئلة بنماذج إجابة، ومهام تأمل ونقاش تفاعلية.',
     hero_cta: 'ابدأ الآن',
@@ -32,14 +34,18 @@ const I18N = {
     setup_title: 'قاعدة البيانات غير مهيأة بعد (Supabase)',
     setup_text: 'أضف بيانات Supabase في ملف supabase.js لتفعيل حفظ المحاضرات ومحادثات النقاش. التوليد بالذكاء الاصطناعي يعمل بدونها.',
     step1_title: 'أدخل محتوى المحاضرة',
-    step1_sub: 'الصق النص أو ارفع ملفًا نصيًا — كلما كان المحتوى أدق، كانت النتائج أفضل',
+    step1_sub: 'الصق النص أو ارفع ملفًا (TXT, Word, PDF) — كلما كان المحتوى أدق، كانت النتائج أفضل',
+    label_course: 'المادة / المقرر',
+    opt_no_course: '— بدون مادة (عام) —',
     label_title: 'عنوان المحاضرة',
     ph_title: 'مثال: نموذج SAMR وتوظيف التكنولوجيا في الصف',
+    label_date: 'تاريخ المحاضرة',
+    label_time: 'وقت المحاضرة',
     label_text: 'محتوى المحاضرة',
     ph_text: 'الصق هنا نص المحاضرة الكاملة...',
     chars_word: 'حرف',
-    drop_title: 'اسحب ملفًا نصيًا هنا أو اضغط للاختيار',
-    drop_hint: 'يدعم: TXT, MD — حتى 80 ألف حرف',
+    drop_title: 'اسحب ملفًا هنا أو اضغط للاختيار',
+    drop_hint: 'يدعم: TXT, MD, Word (.docx), PDF — حتى 80 ألف حرف',
     label_output_lang: 'لغة النتائج',
     opt_ar: 'العربية',
     opt_en: 'الإنجليزية',
@@ -48,6 +54,44 @@ const I18N = {
     btn_clear: 'مسح',
     btn_generate: 'توليد المحتوى التعليمي',
     generate_note: 'يتم التوليد بواسطة Google Gemini — النص لا يُرسل إلا للخدمة، والمفتاح محمي على الخادم.',
+    // Courses
+    courses_title: 'المواد / المقررات',
+    courses_empty: 'لا توجد مواد بعد — أضف مادتك الأولى.',
+    ph_course_title: 'مثال: Employing Technology in ELT',
+    ph_course_desc: 'وصف مختصر (اختياري)',
+    btn_add_course: 'إضافة مادة',
+    // Classroom
+    classroom_title: 'إدارة الصف',
+    classroom_sub: 'اختر المادة من الأعلى أولًا — ثم سجّل الحضور والدرجات.',
+    tab_attendance: 'الحضور والغياب',
+    tab_grades: 'الدرجات',
+    attendance_title: 'سجل الحضور والغياب',
+    attendance_hint: 'اختر تاريخ الجلسة وسجّل حالة كل طالب — النسبة المئوية تُحسب تلقائيًا.',
+    grades_title: 'سجل الدرجات',
+    grades_sub: 'أعمال السنة — الحضور والغياب — الاختبارات والامتحانات. المجموع يُحسب تلقائيًا.',
+    session_date: 'تاريخ الجلسة',
+    student_name_ph: 'اسم الطالب / الطالبة',
+    student_number_ph: 'رقم القيد (اختياري)',
+    btn_add_student: 'إضافة طالب',
+    student_number_label: 'رقم القيد',
+    attendance_rate: 'نسبة الحضور',
+    status_present: 'حاضر',
+    status_absent: 'غائب',
+    status_late: 'متأخر',
+    classroom_need_course: 'اختر مادة أولًا من القائمة أعلاه لتفعيل إدارة الصف.',
+    btn_go_courses: 'الذهاب للمواد',
+    no_students: 'لا يوجد طلاب بعد — أضف أول طالب.',
+    cat_coursework: 'أعمال السنة',
+    cat_attendance: 'الحضور والغياب',
+    cat_exam: 'الاختبارات والامتحانات',
+    grade_item_ph: 'عنوان البند (مثال: واجب 1)',
+    max_score_ph: 'الدرجة القصوى',
+    btn_add_grade_item: 'إضافة بند',
+    no_grade_items: 'لا توجد بنود في هذا التصنيف بعد.',
+    student_name_label: 'الطالب',
+    total_label: 'المجموع',
+    grades_hint: 'القيم تُحفظ تلقائيًا عند التعديل.',
+    // Sidebar
     sidebar_title: 'المحاضرات المحفوظة',
     sidebar_empty: 'لا توجد محاضرات محفوظة بعد.',
     btn_open: 'فتح',
@@ -82,7 +126,7 @@ const I18N = {
     comments_title: 'التعليقات',
     comments_empty: 'كن أول من يعلّق على هذه المحاضرة.',
     features_title: 'ماذا يُنتج المساعد لك؟',
-    features_sub: 'أربعة مخرجات تعليمية مصممة خصيصًا لمقرر «توظيف التكنولوجيا في تدريس اللغة الإنجليزية».',
+    features_sub: 'أربعة مخرجات تعليمية مصممة لمقررات كلية الآداب والتربية — قسم اللغة الإنجليزية.',
     feat1_title: 'ملخصات تربوية ومفاهيم',
     feat1_text: 'ملخص دقيق للمحاضرة مع المفاهيم الجوهرية: SAMR، TPACK، التعلم المدمج، نظريات التعلم وأكثر.',
     feat2_title: 'خلاصات وتطبيقات ليبية',
@@ -91,11 +135,13 @@ const I18N = {
     feat3_text: 'أسئلة سيناريوهات واقعية بنماذج إجابة قوية، مصممة على نمط أسئلة الامتحانات الجامعية.',
     feat4_title: 'تأمل ونقاش تفاعلي',
     feat4_text: 'مهام تأمل شخصية وجماعية ولوحة نقاش تفاعلية تربط الطلاب والمحاضرين في مساحة واحدة.',
-    footer_about: 'تطبيق تعليمي مجاني مفتوح لطلبة ومحاضري قسم اللغة الإنجليزية — كلية الآداب والتعليم، جامعة صبراتة.',
-    footer_course: 'المقرر',
-    footer_course_ar: 'توظيف التكنولوجيا في تدريس اللغة الإنجليزية',
+    footer_about: 'تطبيق تعليمي مجاني مفتوح لطلبة ومحاضري قسم اللغة الإنجليزية — كلية الآداب والتربية، جامعة صبراتة.',
+    footer_course: 'المقررات',
+    footer_course_name: 'توظيف التكنولوجيا في ELT — وجميع مقررات القسم',
+    footer_course_hint: 'أضف موادك من قسم «المواد / المقررات» أعلاه',
     footer_tech: 'التقنيات',
-    footer_rights: '© 2026 جامعة صبراتة — كلية الآداب والتعليم — قسم اللغة الإنجليزية. جميع الحقوق محفوظة.',
+    footer_credit: 'إعداد وإشراف: الأستاذة إيناس مصباح عمر — Enas Mesbah Omar',
+    footer_rights: '© 2026 جامعة صبراتة — كلية الآداب والتربية — قسم اللغة الإنجليزية. جميع الحقوق محفوظة.',
     loading_title: 'جارٍ توليد المحتوى التعليمي...',
     loading_sub: 'يقرأ Gemini المحاضرة ويجهّز الملخص والتطبيقات والأسئلة. قد يستغرق ذلك حتى دقيقة.',
     // dynamic strings
@@ -103,7 +149,8 @@ const I18N = {
     toast_saved_db: 'تم حفظ المحاضرة في قاعدة البيانات.',
     toast_copied: 'تم النسخ إلى الحافظة.',
     toast_file_loaded: 'تم تحميل الملف بنجاح.',
-    toast_file_bad: 'تعذر قراءة الملف. تأكد أنه ملف نصي.',
+    toast_file_bad: 'تعذر قراءة الملف. تأكد من صيغته (TXT, DOCX, PDF).',
+    toast_file_parsing: 'جارٍ استخراج النص من الملف...',
     toast_sample: 'تم تحميل مثال جاهز.',
     toast_cleared: 'تم مسح النموذج.',
     toast_comment: 'تم نشر تعليقك. شكراً لك!',
@@ -112,6 +159,10 @@ const I18N = {
     toast_need_text: 'يرجى إدخال محتوى المحاضرة أولًا (40 حرفًا على الأقل).',
     toast_error: 'حدث خطأ. حاول مرة أخرى.',
     toast_db_off: 'قاعدة البيانات غير مهيأة — النتائج معروضة لكن غير محفوظة.',
+    toast_course_added: 'تمت إضافة المادة.',
+    toast_student_added: 'تمت إضافة الطالب.',
+    toast_grade_item_added: 'تمت إضافة بند الدرجة.',
+    toast_db_no_course: 'اختر مادة لتفعيل هذه الميزة (أو أنشئ مادة جديدة).',
     err_prefix: 'خطأ',
     model_answer_label: 'نموذج الإجابة',
     question_label: 'السؤال',
@@ -125,9 +176,18 @@ const I18N = {
     no_reflections: 'لا توجد تأملات محفوظة بعد.',
     comments_disabled: 'لوحة النقاش تحتاج إعداد Supabase.',
     loading_saved: 'جارٍ فتح المحاضرة...',
+    confirm_delete_course: 'هل تريد حذف هذه المادة وجميع محاضراتها؟',
+    confirm_delete_student: 'هل تريد حذف هذا الطالب؟ سيتم حذف حضوره ودرجاته أيضًا.',
+    confirm_delete_grade_item: 'هل تريد حذف بند الدرجة هذا؟',
+    filter_all_courses: 'كل المواد',
+    course_label: 'المادة:',
+    lecture_date_label: 'التاريخ:',
+    lecture_time_label: 'الوقت:',
+    schedule_missing: '—',
   },
   en: {
     nav_print: 'Print',
+    nav_classroom: 'Classroom',
     btn_print: 'Print',
     hero_badge: 'Faculty of Arts & Education — Department of English',
     hero_title: 'Employing Technology in ELT',
@@ -142,14 +202,18 @@ const I18N = {
     setup_title: 'Database not configured yet (Supabase)',
     setup_text: 'Add your Supabase credentials in supabase.js to enable saving lectures and discussion threads. AI generation works without it.',
     step1_title: 'Enter your lecture content',
-    step1_sub: 'Paste the text or upload a text file — the richer the content, the better the results',
+    step1_sub: 'Paste the text or upload a file (TXT, Word, PDF) — the richer the content, the better the results',
+    label_course: 'Course',
+    opt_no_course: '— No course (general) —',
     label_title: 'Lecture title',
     ph_title: 'e.g., The SAMR Model and technology integration in class',
+    label_date: 'Lecture date',
+    label_time: 'Lecture time',
     label_text: 'Lecture content',
     ph_text: 'Paste the full lecture text here...',
     chars_word: 'characters',
-    drop_title: 'Drop a text file here or click to browse',
-    drop_hint: 'Supports: TXT, MD — up to 80,000 characters',
+    drop_title: 'Drop a file here or click to browse',
+    drop_hint: 'Supports: TXT, MD, Word (.docx), PDF — up to 80,000 characters',
     label_output_lang: 'Output language',
     opt_ar: 'Arabic',
     opt_en: 'English',
@@ -158,6 +222,41 @@ const I18N = {
     btn_clear: 'Clear',
     btn_generate: 'Generate educational content',
     generate_note: 'Generated by Google Gemini — text is only sent to the service; the API key stays protected on the server.',
+    courses_title: 'Courses',
+    courses_empty: 'No courses yet — add your first one.',
+    ph_course_title: 'e.g., Employing Technology in ELT',
+    ph_course_desc: 'Short description (optional)',
+    btn_add_course: 'Add course',
+    classroom_title: 'Classroom management',
+    classroom_sub: 'Pick a course above first — then track attendance and grades.',
+    tab_attendance: 'Attendance',
+    tab_grades: 'Grades',
+    attendance_title: 'Attendance register',
+    attendance_hint: 'Pick a session date and mark each student — attendance rate is calculated automatically.',
+    grades_title: 'Gradebook',
+    grades_sub: 'Coursework — Attendance — Exams. Totals are calculated automatically.',
+    session_date: 'Session date',
+    student_name_ph: 'Student full name',
+    student_number_ph: 'Student ID (optional)',
+    btn_add_student: 'Add student',
+    student_number_label: 'ID',
+    attendance_rate: 'Attendance',
+    status_present: 'Present',
+    status_absent: 'Absent',
+    status_late: 'Late',
+    classroom_need_course: 'Pick a course from the list above to enable classroom features.',
+    btn_go_courses: 'Go to courses',
+    no_students: 'No students yet — add the first one.',
+    cat_coursework: 'Coursework',
+    cat_attendance: 'Attendance',
+    cat_exam: 'Exams',
+    grade_item_ph: 'Item title (e.g., Assignment 1)',
+    max_score_ph: 'Max score',
+    btn_add_grade_item: 'Add item',
+    no_grade_items: 'No items in this category yet.',
+    student_name_label: 'Student',
+    total_label: 'Total',
+    grades_hint: 'Values are saved automatically on change.',
     sidebar_title: 'Saved lectures',
     sidebar_empty: 'No saved lectures yet.',
     btn_open: 'Open',
@@ -192,7 +291,7 @@ const I18N = {
     comments_title: 'Comments',
     comments_empty: 'Be the first to comment on this lecture.',
     features_title: 'What does the assistant generate?',
-    features_sub: 'Four educational outputs tailored to the course "Employing Technology in ELT".',
+    features_sub: 'Four educational outputs tailored to courses at the Faculty of Arts & Education — Department of English.',
     feat1_title: 'Summaries & concepts',
     feat1_text: 'A precise lecture summary with core concepts: SAMR, TPACK, Blended Learning, learning theories and more.',
     feat2_title: 'Libyan takeaways & applications',
@@ -202,18 +301,20 @@ const I18N = {
     feat4_title: 'Reflection & discussion',
     feat4_text: 'Individual and group reflection tasks plus an interactive discussion board connecting students and professors.',
     footer_about: 'A free, open educational app for students and staff of the Department of English — Faculty of Arts & Education, Sabratha University.',
-    footer_course: 'Course',
-    footer_course_ar: 'Employing Technology in ELT (Arabic title)',
+    footer_course: 'Courses',
+    footer_course_name: 'Employing Technology in ELT — and all department courses',
+    footer_course_hint: 'Add your courses from the “Courses” panel above',
     footer_tech: 'Technologies',
+    footer_credit: 'Prepared & supervised by: Enas Mesbah Omar',
     footer_rights: '© 2026 Sabratha University — Faculty of Arts & Education — Department of English. All rights reserved.',
     loading_title: 'Generating educational content...',
     loading_sub: 'Gemini is reading your lecture and preparing the summary, applications and questions. This may take up to a minute.',
-    // dynamic strings
     toast_generated: 'Content generated successfully! ✨',
     toast_saved_db: 'Lecture saved to the database.',
     toast_copied: 'Copied to clipboard.',
     toast_file_loaded: 'File loaded successfully.',
-    toast_file_bad: 'Could not read the file. Please use a plain-text file.',
+    toast_file_bad: 'Could not read the file. Check its format (TXT, DOCX, PDF).',
+    toast_file_parsing: 'Extracting text from file...',
     toast_sample: 'Sample lecture loaded.',
     toast_cleared: 'Form cleared.',
     toast_comment: 'Comment posted. Thank you!',
@@ -222,6 +323,10 @@ const I18N = {
     toast_need_text: 'Please enter lecture content first (at least 40 characters).',
     toast_error: 'Something went wrong. Please try again.',
     toast_db_off: 'Database not configured — results shown but not saved.',
+    toast_course_added: 'Course added.',
+    toast_student_added: 'Student added.',
+    toast_grade_item_added: 'Grade item added.',
+    toast_db_no_course: 'Pick a course to enable this feature (or create a new one).',
     err_prefix: 'Error',
     model_answer_label: 'Model answer',
     question_label: 'Question',
@@ -235,12 +340,22 @@ const I18N = {
     no_reflections: 'No saved reflections yet.',
     comments_disabled: 'The discussion board needs Supabase setup.',
     loading_saved: 'Opening lecture...',
+    confirm_delete_course: 'Delete this course and all its lectures?',
+    confirm_delete_student: 'Delete this student? Attendance and grades will also be removed.',
+    confirm_delete_grade_item: 'Delete this grade item?',
+    filter_all_courses: 'All courses',
+    course_label: 'Course:',
+    lecture_date_label: 'Date:',
+    lecture_time_label: 'Time:',
+    schedule_missing: '—',
   },
 };
 
 const state = {
   lang: 'ar',
-  current: null, // { lectureId, title, text, outputLanguage, analysis, meta }
+  courses: [],
+  selectedCourseId: null, // '' means "general / no course"
+  current: null, // { lectureId, title, text, outputLanguage, lectureDate, lectureTime, courseId, analysis, meta }
   comments: [],
   reflections: [],
 };
@@ -262,8 +377,8 @@ function applyI18n() {
     node.placeholder = t(node.dataset.i18nPlaceholder);
   });
 
-  // Re-render dynamic content in the new language
   if (state.current) renderAnalysis();
+  renderCourses();
   renderSavedList();
   renderComments();
   renderReflections();
@@ -273,7 +388,6 @@ function applyI18n() {
  * Small DOM / UX helpers
  * ======================================================================== */
 
-/** Safe element builder — text via textContent (no HTML injection). */
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -306,6 +420,7 @@ function showLoading(show) {
 }
 
 function formatDate(iso) {
+  if (!iso) return t('schedule_missing');
   try {
     return new Date(iso).toLocaleDateString(state.lang === 'ar' ? 'ar-LY' : 'en-GB', {
       year: 'numeric',
@@ -313,8 +428,20 @@ function formatDate(iso) {
       day: 'numeric',
     });
   } catch {
-    return '';
+    return iso;
   }
+}
+
+function formatTime(timeStr) {
+  if (!timeStr) return t('schedule_missing');
+  // timeStr is "HH:MM" or "HH:MM:SS"
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let h = parseInt(parts[0], 10);
+  const m = parts[1];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m} ${ampm}`;
 }
 
 async function copyText(text) {
@@ -366,7 +493,7 @@ Finally, Mayer's Cognitive Theory of Multimedia Learning highlights that deeper 
 };
 
 /* ==========================================================================
- * Input handling
+ * File reading — TXT / DOCX (Mammoth) / PDF (pdf.js)
  * ======================================================================== */
 
 function updateCharCount() {
@@ -374,27 +501,112 @@ function updateCharCount() {
   document.getElementById('char-count').textContent = String(text.length);
 }
 
-function handleFile(file) {
+function setFileUI(name, status) {
+  const nameEl = document.getElementById('file-name');
+  const statusEl = document.getElementById('file-status');
+  if (name) {
+    nameEl.textContent = name;
+    nameEl.classList.remove('hidden');
+  } else {
+    nameEl.classList.add('hidden');
+  }
+  if (status) {
+    statusEl.textContent = status;
+    statusEl.classList.remove('hidden');
+  } else {
+    statusEl.classList.add('hidden');
+  }
+}
+
+async function extractDocx(arrayBuffer) {
+  if (!window.mammoth) throw new Error('Mammoth not loaded');
+  const result = await window.mammoth.extractRawText({ arrayBuffer });
+  return result.value || '';
+}
+
+async function extractPdf(arrayBuffer) {
+  // pdf.js ESM — try dynamic import, fallback to global
+  let pdfjsLib = window.pdfjsLib;
+  if (!pdfjsLib) {
+    try {
+      const mod = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs');
+      pdfjsLib = mod;
+      window.pdfjsLib = mod;
+    } catch {
+      throw new Error('PDF.js not loaded');
+    }
+  }
+  if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+  }
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((item) => item.str).join(' ');
+    text += pageText + '\n\n';
+    if (text.length > 80000) break; // cap
+  }
+  return text.trim();
+}
+
+async function handleFile(file) {
   if (!file) return;
-  const okTypes = /\.(txt|md|markdown|text)$/i;
-  if (!okTypes.test(file.name) && file.type && !file.type.startsWith('text/')) {
-    toast(t('toast_file_bad'), 'error');
+  const name = file.name || 'file';
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+
+  // plain text fast path
+  if (['txt', 'md', 'markdown', 'text'].includes(ext) || file.type.startsWith('text/')) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      applyFileText(text, name);
+    };
+    reader.onerror = () => toast(t('toast_file_bad'), 'error');
+    reader.readAsText(file);
     return;
   }
-  const reader = new FileReader();
-  reader.onload = () => {
-    document.getElementById('lecture-text').value = String(reader.result || '');
-    const fileNameEl = document.getElementById('file-name');
-    fileNameEl.textContent = file.name;
-    fileNameEl.classList.remove('hidden');
-    if (!document.getElementById('lecture-title').value.trim()) {
-      document.getElementById('lecture-title').value = file.name.replace(/\.[^.]+$/, '');
+
+  // DOCX / PDF need arrayBuffer + parsing
+  setFileUI(name, t('toast_file_parsing'));
+  showLoading(true);
+  document.getElementById('file-loading-text').textContent = `${t('toast_file_parsing')} — ${name}`;
+  document.getElementById('file-loading-text').classList.remove('hidden');
+
+  try {
+    const buffer = await file.arrayBuffer();
+    let text = '';
+    if (ext === 'docx' || ext === 'doc') {
+      text = await extractDocx(buffer);
+    } else if (ext === 'pdf') {
+      text = await extractPdf(buffer);
+    } else {
+      // fallback: try as text
+      text = new TextDecoder().decode(buffer);
     }
-    updateCharCount();
-    toast(t('toast_file_loaded'));
-  };
-  reader.onerror = () => toast(t('toast_file_bad'), 'error');
-  reader.readAsText(file);
+    text = text.trim();
+    if (!text) throw new Error('empty');
+    if (text.length > 80000) text = text.slice(0, 80000);
+    applyFileText(text, name);
+  } catch (err) {
+    console.warn('[app.js] file parse failed:', err);
+    toast(t('toast_file_bad'), 'error');
+    setFileUI(name, t('toast_file_bad'));
+  } finally {
+    showLoading(false);
+    document.getElementById('file-loading-text').classList.add('hidden');
+  }
+}
+
+function applyFileText(text, name) {
+  document.getElementById('lecture-text').value = text;
+  setFileUI(name, `${text.length.toLocaleString()} ${t('chars_word')}`);
+  if (!document.getElementById('lecture-title').value.trim()) {
+    document.getElementById('lecture-title').value = name.replace(/\.[^.]+$/, '');
+  }
+  updateCharCount();
+  toast(t('toast_file_loaded'));
 }
 
 function initInputHandlers() {
@@ -435,10 +647,143 @@ function initInputHandlers() {
   document.getElementById('btn-clear').addEventListener('click', () => {
     textArea.value = '';
     document.getElementById('lecture-title').value = '';
-    document.getElementById('file-name').classList.add('hidden');
+    document.getElementById('lecture-date').value = '';
+    document.getElementById('lecture-time').value = '';
+    setFileUI(null, null);
     fileInput.value = '';
     updateCharCount();
     toast(t('toast_cleared'), 'info');
+  });
+}
+
+/* ==========================================================================
+ * Courses
+ * ======================================================================== */
+
+async function refreshCourses() {
+  if (!db.isConfigured()) {
+    renderCourses([]);
+    return;
+  }
+  const { data } = await db.fetchCourses();
+  renderCourses(data || []);
+}
+
+function renderCourses(courses) {
+  if (courses !== undefined) {
+    state.courses = courses;
+    renderCourses._cache = courses;
+  } else {
+    courses = state.courses || renderCourses._cache || [];
+  }
+
+  const list = document.getElementById('courses-list');
+  const countEl = document.getElementById('courses-count');
+  const select = document.getElementById('course-select');
+  if (!list || !countEl || !select) return;
+
+  const currentVal = state.selectedCourseId ?? select.value ?? '';
+
+  // select options
+  const prevVal = select.value;
+  select.innerHTML = '';
+  const noOpt = el('option', '', t('opt_no_course'));
+  noOpt.value = '';
+  select.appendChild(noOpt);
+  courses.forEach((c) => {
+    const opt = el('option', '', c.title);
+    opt.value = c.id;
+    select.appendChild(opt);
+  });
+  // restore selection
+  if (courses.some((c) => c.id === currentVal)) {
+    select.value = currentVal;
+    state.selectedCourseId = currentVal;
+  } else if (courses.some((c) => c.id === prevVal)) {
+    select.value = prevVal;
+    state.selectedCourseId = prevVal || null;
+  } else {
+    select.value = '';
+    state.selectedCourseId = null;
+  }
+
+  // count + list
+  countEl.textContent = String(courses.length);
+  list.innerHTML = '';
+  if (!courses.length) {
+    list.appendChild(el('p', 'text-sm text-slate-400 text-center py-4', t('courses_empty')));
+    return;
+  }
+
+  courses.forEach((course) => {
+    const card = el('div', `rounded-2xl border-2 p-3 transition ${state.selectedCourseId === course.id ? 'border-brand-800 bg-brand-50' : 'border-slate-100 hover:border-brand-200'}`);
+    const row = el('div', 'flex items-start justify-between gap-2');
+    const info = el('div', 'flex-1 min-w-0');
+    info.appendChild(el('p', 'font-bold text-slate-800 text-sm leading-snug', course.title));
+    if (course.description) info.appendChild(el('p', 'text-xs text-slate-400 mt-0.5', course.description));
+    row.appendChild(info);
+    const actions = el('div', 'flex items-center gap-1 shrink-0');
+    const selectBtn = el('button', `px-3 py-1.5 rounded-lg text-xs font-bold transition ${state.selectedCourseId === course.id ? 'bg-brand-800 text-white' : 'bg-brand-50 text-brand-800 hover:bg-brand-100'}`, state.selectedCourseId === course.id ? '✓' : t('btn_open'));
+    selectBtn.addEventListener('click', async () => {
+      state.selectedCourseId = course.id;
+      document.getElementById('course-select').value = course.id;
+      renderCourses();
+      await onCourseChanged();
+    });
+    const delBtn = el('button', 'px-2 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition', t('btn_delete'));
+    delBtn.addEventListener('click', async () => {
+      if (!confirm(t('confirm_delete_course'))) return;
+      await db.deleteCourse(course.id);
+      if (state.selectedCourseId === course.id) state.selectedCourseId = null;
+      await refreshCourses();
+      await refreshSavedList();
+      await onCourseChanged();
+      toast(t('toast_deleted'));
+    });
+    actions.appendChild(selectBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(actions);
+    card.appendChild(row);
+    list.appendChild(card);
+  });
+}
+
+async function onCourseChanged() {
+  const select = document.getElementById('course-select');
+  state.selectedCourseId = select.value || null;
+  renderCourses();
+  await refreshSavedList();
+  // notify classroom module
+  try {
+    await classroomSetCourse();
+  } catch (e) {
+    console.warn('[app.js] classroomSetCourse failed:', e.message);
+  }
+}
+
+function initCourses() {
+  document.getElementById('course-select').addEventListener('change', onCourseChanged);
+  document.getElementById('course-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!db.isConfigured()) {
+      document.getElementById('setup-notice').classList.remove('hidden');
+      toast(t('toast_db_off'), 'info');
+      return;
+    }
+    const title = document.getElementById('course-title').value.trim();
+    const description = document.getElementById('course-desc').value.trim();
+    if (!title) return;
+    const { data, error } = await db.saveCourse({ title, description });
+    if (error || !data) {
+      toast(t('toast_error'), 'error');
+      return;
+    }
+    document.getElementById('course-title').value = '';
+    document.getElementById('course-desc').value = '';
+    state.selectedCourseId = data.id;
+    await refreshCourses();
+    await onCourseChanged();
+    toast(t('toast_course_added'));
   });
 }
 
@@ -450,6 +795,9 @@ async function generate() {
   const title = document.getElementById('lecture-title').value.trim();
   const text = document.getElementById('lecture-text').value.trim();
   const outputLanguage = document.getElementById('output-language').value;
+  const courseId = document.getElementById('course-select').value || null;
+  const lectureDate = document.getElementById('lecture-date').value || null;
+  const lectureTime = document.getElementById('lecture-time').value || null;
 
   if (text.length < 40) {
     toast(t('toast_need_text'), 'error');
@@ -476,6 +824,9 @@ async function generate() {
       title: title || (state.lang === 'ar' ? 'محاضرة بدون عنوان' : 'Untitled lecture'),
       text,
       outputLanguage,
+      lectureDate,
+      lectureTime,
+      courseId,
       analysis: json.data,
       meta: json.meta,
     };
@@ -506,6 +857,9 @@ async function persistCurrent() {
       title: state.current.title,
       sourceText: state.current.text,
       outputLanguage: state.current.outputLanguage,
+      courseId: state.current.courseId,
+      lectureDate: state.current.lectureDate,
+      lectureTime: state.current.lectureTime,
     });
     if (error || !lecture) return;
 
@@ -648,6 +1002,10 @@ function analysisAsText() {
   const lines = [];
   const title = state.current?.title || '';
   if (title) lines.push(`# ${title}`, '');
+  if (state.current?.lectureDate) lines.push(`${t('lecture_date_label')} ${state.current.lectureDate}`);
+  if (state.current?.lectureTime) lines.push(`${t('lecture_time_label')} ${state.current.lectureTime}`);
+  const courseName = state.courses.find((c) => c.id === state.current?.courseId)?.title;
+  if (courseName) lines.push(`${t('course_label')} ${courseName}`, '');
   lines.push(`## ${t('summary_title')}`, a.summary || '', '');
   lines.push(`## ${t('concepts_title')}`);
   (a.core_concepts || []).forEach((c) => lines.push(`• ${c.term}: ${c.definition}${c.classroom_link ? ` (${c.classroom_link})` : ''}`));
@@ -673,7 +1031,9 @@ async function refreshSavedList() {
     renderSavedList([]);
     return;
   }
-  const { data } = await db.fetchLectures();
+  const courseId = state.selectedCourseId || null;
+  // When no course filter, show all; otherwise filter
+  const { data } = await db.fetchLectures({ courseId });
   renderSavedList(data || []);
 }
 
@@ -696,7 +1056,13 @@ function renderSavedList(lectures) {
   items.forEach((lecture) => {
     const card = el('div', 'rounded-2xl border-2 border-slate-100 p-4 hover:border-brand-200 transition');
     card.appendChild(el('h4', 'font-bold text-slate-800 text-sm leading-snug', lecture.title));
-    card.appendChild(el('p', 'text-xs text-slate-400 mt-1', formatDate(lecture.created_at)));
+    const meta = el('div', 'flex flex-wrap gap-2 mt-1');
+    meta.appendChild(el('span', 'text-xs text-slate-400', formatDate(lecture.created_at)));
+    if (lecture.lecture_date) meta.appendChild(el('span', 'text-xs text-brand-700 font-bold', `${t('lecture_date_label')} ${formatDate(lecture.lecture_date)}`));
+    if (lecture.lecture_time) meta.appendChild(el('span', 'text-xs text-slate-400', formatTime(lecture.lecture_time)));
+    const courseName = state.courses.find((c) => c.id === lecture.course_id)?.title;
+    if (courseName) meta.appendChild(el('span', 'text-xs px-2 py-0.5 rounded-full bg-gold-100 text-gold-700 font-bold', courseName));
+    card.appendChild(meta);
 
     const actions = el('div', 'flex items-center gap-2 mt-3');
     const openBtn = el('button', 'px-3 py-1.5 rounded-lg bg-brand-800 text-white text-xs font-bold hover:bg-brand-900 transition', t('btn_open'));
@@ -730,6 +1096,9 @@ async function openLecture(lecture) {
       title: lecture.title,
       text: lecture.source_text || '',
       outputLanguage: lecture.output_language || 'ar',
+      lectureDate: lecture.lecture_date || '',
+      lectureTime: lecture.lecture_time || '',
+      courseId: lecture.course_id || null,
       analysis: analysis
         ? {
             summary: analysis.summary,
@@ -748,6 +1117,13 @@ async function openLecture(lecture) {
 
     document.getElementById('lecture-title').value = lecture.title;
     document.getElementById('lecture-text').value = lecture.source_text || '';
+    document.getElementById('lecture-date').value = lecture.lecture_date || '';
+    document.getElementById('lecture-time').value = lecture.lecture_time ? lecture.lecture_time.slice(0, 5) : '';
+    if (lecture.course_id) {
+      state.selectedCourseId = lecture.course_id;
+      document.getElementById('course-select').value = lecture.course_id;
+      renderCourses();
+    }
     updateCharCount();
 
     if (state.current.analysis) {
@@ -758,6 +1134,8 @@ async function openLecture(lecture) {
     }
     renderComments();
     renderReflections();
+    // refresh classroom for this lecture's course
+    try { await classroomSetCourse(); } catch {}
   } catch (err) {
     toast(`${t('err_prefix')}: ${err.message}`, 'error');
   } finally {
@@ -955,19 +1333,30 @@ function init() {
 
   // Input + generation
   initInputHandlers();
+  initCourses();
   document.getElementById('btn-generate').addEventListener('click', generate);
 
   // Discussion form
   document.getElementById('comment-form').addEventListener('submit', submitComment);
 
-  // Supabase
+  // Supabase + classroom context
   db.initSupabase();
   if (db.isConfigured()) {
     document.getElementById('setup-notice').classList.add('hidden');
-    refreshSavedList();
+    refreshCourses().then(() => refreshSavedList());
   } else {
     document.getElementById('setup-notice').classList.remove('hidden');
+    renderCourses([]);
     renderSavedList([]);
+  }
+
+  // Classroom module (attendance + grades)
+  try {
+    initClassroom({ t, el, toast, formatDate, state, db });
+    // sync initial course after courses load
+    setTimeout(() => { classroomSetCourse().catch(() => {}); }, 800);
+  } catch (e) {
+    console.warn('[app.js] classroom init failed:', e.message);
   }
 
   // Restore remembered commenter name
@@ -982,3 +1371,6 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Export for classroom.js dependency injection
+export { state, t, el, toast, formatDate };

@@ -46,12 +46,13 @@
     details > summary::-webkit-details-marker { display: none; }
     details[open] .chevron { transform: rotate(180deg); }
     .drop-zone.dragover { border-color: #14657A; background: #E6F2F5; }
+    .classroom-tab-btn.tab-active { background: #0F4C5C; color: #fff; }
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: #F2F9FB; }
     ::-webkit-scrollbar-thumb { background: #9DBEC8; border-radius: 8px; }
     ::-webkit-scrollbar-thumb:hover { background: #2A8FA8; }
     @media print {
-      header, footer, #hero, #input-section, #sidebar, #features-section, .no-print, #loading-overlay, #toast-container { display: none !important; }
+      header, footer, #hero, #input-section, #course-section, #classroom-section, #sidebar, #features-section, .no-print, #loading-overlay, #toast-container { display: none !important; }
       #results-section { display: block !important; }
       .tab-panel { display: block !important; }
       body { background: #fff; }
@@ -76,6 +77,10 @@
 
         <!-- Actions -->
         <div class="flex items-center gap-2 shrink-0">
+          <a href="#classroom-section" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-5.17 0-9.728-3.116-11.962-7.962A11.944 11.944 0 0112 3a11.944 11.944 0 0111.962 7.962c0 .225-.012.447-.037.666A3 3 0 0018 18.72z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/></svg>
+            <span data-i18n="nav_classroom">إدارة الصف</span>
+          </a>
           <button id="btn-print" class="no-print hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a4.24 4.24 0 010-8.484m0 8.484c.24-.034.48-.066.72-.096m-.72.096l-4.24 4.242h13.28L18 13.83m-9.28 2.172l2.286-2.286m0 0l2.286 2.286M12 6.75v5.25"/></svg>
             <span data-i18n="nav_print">طباعة</span>
@@ -97,7 +102,7 @@
         <div class="lg:col-span-3">
           <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs sm:text-sm font-semibold">
             <span class="w-2 h-2 rounded-full bg-gold-500 animate-pulse"></span>
-            <span data-i18n="hero_badge">كلية الآداب والتعليم — قسم اللغة الإنجليزية</span>
+            <span data-i18n="hero_badge">كلية الآداب والتربية — قسم اللغة الإنجليزية</span>
           </span>
           <h2 class="mt-5 text-3xl sm:text-5xl font-extrabold leading-tight">
             <span data-i18n="hero_title">توظيف التكنولوجيا في تدريس اللغة الإنجليزية</span>
@@ -163,16 +168,38 @@
               <span class="w-9 h-9 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold">1</span>
               <span data-i18n="step1_title">أدخل محتوى المحاضرة</span>
             </h3>
-            <p class="text-brand-100 text-sm mt-1" data-i18n="step1_sub">الصق النص أو ارفع ملفًا نصيًا — كلما كان المحتوى أدق، كانت النتائج أفضل</p>
+            <p class="text-brand-100 text-sm mt-1" data-i18n="step1_sub">الصق النص أو ارفع ملفًا (TXT, Word, PDF) — كلما كان المحتوى أدق، كانت النتائج أفضل</p>
           </div>
 
           <div class="p-6 sm:p-8 space-y-6">
-            <!-- Title -->
-            <div>
-              <label for="lecture-title" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_title">عنوان المحاضرة</label>
-              <input id="lecture-title" type="text" maxlength="200"
-                class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition"
-                data-i18n-placeholder="ph_title" placeholder="مثال: نموذج SAMR وتوظيف التكنولوجيا في الصف" />
+            <!-- Course + Title row -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="course-select" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_course">المادة / المقرر</label>
+                <select id="course-select" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 bg-white text-slate-800 transition">
+                  <option value="" data-i18n="opt_no_course">— بدون مادة (عام) —</option>
+                </select>
+              </div>
+              <div>
+                <label for="lecture-title" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_title">عنوان المحاضرة</label>
+                <input id="lecture-title" type="text" maxlength="200"
+                  class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition"
+                  data-i18n-placeholder="ph_title" placeholder="مثال: نموذج SAMR وتوظيف التكنولوجيا في الصف" />
+              </div>
+            </div>
+
+            <!-- Date + Time row -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="lecture-date" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_date">تاريخ المحاضرة</label>
+                <input id="lecture-date" type="date"
+                  class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition" />
+              </div>
+              <div>
+                <label for="lecture-time" class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_time">وقت المحاضرة</label>
+                <input id="lecture-time" type="time"
+                  class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 outline-none px-4 py-3 text-slate-800 transition" />
+              </div>
             </div>
 
             <!-- Textarea -->
@@ -188,11 +215,12 @@
 
             <!-- Drop zone -->
             <div id="drop-zone" class="drop-zone border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center hover:border-brand-500 hover:bg-brand-50 transition cursor-pointer">
-              <input id="file-input" type="file" class="hidden" accept=".txt,.md,.markdown,.text,text/plain" />
+              <input id="file-input" type="file" class="hidden" accept=".txt,.md,.markdown,.text,.docx,.doc,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword" />
               <svg class="w-10 h-10 mx-auto text-brand-500" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-              <p class="mt-2 text-sm font-bold text-slate-600" data-i18n="drop_title">اسحب ملفًا نصيًا هنا أو اضغط للاختيار</p>
-              <p class="text-xs text-slate-400 mt-1" data-i18n="drop_hint">يدعم: TXT, MD — حتى 80 ألف حرف</p>
+              <p class="mt-2 text-sm font-bold text-slate-600" data-i18n="drop_title">اسحب ملفًا هنا أو اضغط للاختيار</p>
+              <p class="text-xs text-slate-400 mt-1" data-i18n="drop_hint">يدعم: TXT, MD, Word (.docx), PDF — حتى 80 ألف حرف</p>
               <p id="file-name" class="text-xs font-bold text-brand-700 mt-2 hidden"></p>
+              <p id="file-status" class="text-xs text-slate-400 mt-1 hidden"></p>
             </div>
 
             <!-- Options row -->
@@ -228,22 +256,93 @@
         </div>
       </section>
 
-      <!-- SIDEBAR: SAVED LECTURES -->
-      <aside id="sidebar">
+      <!-- SIDEBAR: COURSES + SAVED LECTURES -->
+      <aside id="sidebar" class="space-y-6">
+        <!-- Courses card -->
+        <div id="course-section" class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden scroll-mt-28">
+          <div class="bg-gradient-to-l from-gold-500 to-gold-600 text-brand-900 px-6 py-4 flex items-center justify-between">
+            <h3 class="text-base font-extrabold flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+              <span data-i18n="courses_title">المواد / المقررات</span>
+            </h3>
+            <span id="courses-count" class="px-2.5 py-0.5 rounded-full bg-brand-900 text-gold-500 text-xs font-bold">0</span>
+          </div>
+          <div class="p-4 space-y-4">
+            <div id="courses-list" class="space-y-2 max-h-[320px] overflow-y-auto">
+              <p id="courses-empty" class="text-sm text-slate-400 text-center py-4" data-i18n="courses_empty">لا توجد مواد بعد — أضف مادتك الأولى.</p>
+            </div>
+            <form id="course-form" class="space-y-2 border-t-2 border-slate-100 pt-4">
+              <input id="course-title" type="text" maxlength="120" required
+                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm"
+                data-i18n-placeholder="ph_course_title" placeholder="مثال: Employing Technology in ELT" />
+              <input id="course-desc" type="text" maxlength="200"
+                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm"
+                data-i18n-placeholder="ph_course_desc" placeholder="وصف مختصر (اختياري)" />
+              <button type="submit" class="w-full px-4 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-bold hover:bg-brand-900 transition" data-i18n="btn_add_course">إضافة مادة</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Saved lectures card -->
         <div class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden lg:sticky lg:top-28">
           <div class="bg-brand-800 text-white px-6 py-5 flex items-center justify-between">
-            <h3 class="text-lg font-extrabold flex items-center gap-2">
+            <h3 class="text-base font-extrabold flex items-center gap-2">
               <svg class="w-5 h-5 text-gold-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
               <span data-i18n="sidebar_title">المحاضرات المحفوظة</span>
             </h3>
             <span id="saved-count" class="px-2.5 py-0.5 rounded-full bg-white/15 text-xs font-bold">0</span>
           </div>
-          <div id="saved-list" class="p-4 space-y-3 max-h-[480px] overflow-y-auto">
+          <div id="saved-list" class="p-4 space-y-3 max-h-[400px] overflow-y-auto">
             <p id="saved-empty" class="text-sm text-slate-400 text-center py-8" data-i18n="sidebar_empty">لا توجد محاضرات محفوظة بعد.</p>
           </div>
         </div>
       </aside>
     </div>
+
+    <!-- ============ CLASSROOM MANAGEMENT ============ -->
+    <section id="classroom-section" class="mt-12 scroll-mt-28">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h3 class="text-2xl sm:text-3xl font-extrabold text-brand-900 flex items-center gap-2.5">
+          <span class="w-9 h-9 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold text-sm">★</span>
+          <span data-i18n="classroom_title">إدارة الصف</span>
+        </h3>
+        <p class="text-sm text-slate-500" data-i18n="classroom_sub">اختر المادة من الأعلى أولًا — ثم سجّل الحضور والدرجات.</p>
+      </div>
+
+      <!-- Classroom tabs -->
+      <div class="flex flex-wrap gap-2 mb-6 no-print">
+        <button data-ctab="attendance" class="classroom-tab-btn tab-active px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 01-2.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+          <span data-i18n="tab_attendance">الحضور والغياب</span>
+        </button>
+        <button data-ctab="grades" class="classroom-tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span data-i18n="tab_grades">الدرجات</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 sm:p-8">
+        <!-- Attendance panel -->
+        <div id="classroom-attendance">
+          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
+            <span data-i18n="attendance_title">سجل الحضور والغياب</span>
+          </h4>
+          <p class="text-sm text-slate-500 mb-6" data-i18n="attendance_hint">اختر تاريخ الجلسة وسجّل حالة كل طالب — النسبة المئوية تُحسب تلقائيًا.</p>
+          <div id="attendance-body"></div>
+        </div>
+
+        <!-- Grades panel -->
+        <div id="classroom-grades" class="hidden">
+          <h4 class="text-xl font-extrabold text-brand-900 flex items-center gap-2 mb-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-gold-500"></span>
+            <span data-i18n="grades_title">سجل الدرجات</span>
+          </h4>
+          <p class="text-sm text-slate-500 mb-6" data-i18n="grades_sub">أعمال السنة — الحضور والغياب — الاختبارات والامتحانات. المجموع يُحسب تلقائيًا.</p>
+          <div id="grades-body"></div>
+        </div>
+      </div>
+    </section>
 
     <!-- ============ RESULTS ============ -->
     <section id="results-section" class="hidden mt-12 scroll-mt-28">
@@ -410,7 +509,7 @@
     <section id="features-section" class="mt-16 scroll-mt-24">
       <div class="text-center max-w-2xl mx-auto">
         <h3 class="text-2xl sm:text-3xl font-extrabold text-brand-900" data-i18n="features_title">ماذا يُنتج المساعد لك؟</h3>
-        <p class="mt-3 text-slate-600" data-i18n="features_sub">أربعة مخرجات تعليمية مصممة خصيصًا لمقرر «توظيف التكنولوجيا في تدريس اللغة الإنجليزية».</p>
+        <p class="mt-3 text-slate-600" data-i18n="features_sub">أربعة مخرجات تعليمية مصممة لمقررات كلية الآداب والتربية — قسم اللغة الإنجليزية.</p>
       </div>
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
         <!-- F1 -->
@@ -461,22 +560,23 @@
               <p class="text-xs">مساعد تكنولوجيا تدريس اللغة الإنجليزية</p>
             </div>
           </div>
-          <p class="mt-4 text-sm leading-relaxed" data-i18n="footer_about">تطبيق تعليمي مجاني مفتوح لطلبة ومحاضري قسم اللغة الإنجليزية — كلية الآداب والتعليم، جامعة صبراتة.</p>
+          <p class="mt-4 text-sm leading-relaxed" data-i18n="footer_about">تطبيق تعليمي مجاني مفتوح لطلبة ومحاضري قسم اللغة الإنجليزية — كلية الآداب والتربية، جامعة صبراتة.</p>
         </div>
         <div>
           <h4 class="font-extrabold text-white mb-3" data-i18n="footer_course">المقرر</h4>
-          <p class="text-sm">Employing Technology in ELT</p>
-          <p class="text-sm mt-1" data-i18n="footer_course_ar">توظيف التكنولوجيا في تدريس اللغة الإنجليزية</p>
+          <p class="text-sm" data-i18n="footer_course_name">Employing Technology in ELT — وجميع مقررات القسم</p>
+          <p class="text-sm mt-1 text-brand-100/80" data-i18n="footer_course_hint">أضف موادك من قسم «المواد / المقررات» أعلاه</p>
         </div>
         <div>
           <h4 class="font-extrabold text-white mb-3" data-i18n="footer_tech">التقنيات</h4>
           <p class="text-sm">HTML5 · Tailwind CSS · Vanilla JS</p>
           <p class="text-sm mt-1">Vercel Serverless · Google Gemini API</p>
-          <p class="text-sm mt-1">Supabase (PostgreSQL)</p>
+          <p class="text-sm mt-1">Supabase (PostgreSQL) · Mammoth · PDF.js</p>
         </div>
       </div>
-      <div class="border-t border-white/10 mt-8 pt-6 text-center text-xs">
-        <p data-i18n="footer_rights">© 2026 جامعة صبراتة — كلية الآداب والتعليم — قسم اللغة الإنجليزية. جميع الحقوق محفوظة.</p>
+      <div class="border-t border-white/10 mt-8 pt-6 text-center">
+        <p class="text-sm font-bold text-white" data-i18n="footer_credit">إعداد وإشراف: الأستاذة إيناس مصباح عمر — Enas Mesbah Omar</p>
+        <p class="text-xs mt-2 text-brand-100/70" data-i18n="footer_rights">© 2026 جامعة صبراتة — كلية الآداب والتربية — قسم اللغة الإنجليزية. جميع الحقوق محفوظة.</p>
       </div>
     </div>
   </footer>
@@ -491,13 +591,16 @@
       </div>
       <h4 class="mt-6 text-lg font-extrabold text-brand-900" data-i18n="loading_title">جارٍ توليد المحتوى التعليمي...</h4>
       <p class="mt-2 text-sm text-slate-500" data-i18n="loading_sub">يقرأ Gemini المحاضرة ويجهّز الملخص والتطبيقات والأسئلة. قد يستغرق ذلك حتى دقيقة.</p>
+      <p id="file-loading-text" class="hidden mt-3 text-xs font-bold text-brand-700"></p>
     </div>
   </div>
 
   <!-- ======================= TOASTS ======================= -->
   <div id="toast-container" class="fixed bottom-6 inset-x-0 z-[60] flex flex-col items-center gap-2 px-4 pointer-events-none"></div>
 
-  <!-- Scripts -->
+  <!-- File parsers: Mammoth (DOCX) + PDF.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.2/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
