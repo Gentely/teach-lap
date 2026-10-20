@@ -17,7 +17,7 @@
 
 // ⚙️ ---- Supabase credentials (fill these in after creating your project) ----
 export const SUPABASE_URL = 'https://revmwbfytjbukjccswmb.supabase.co'; // ✅ Supabase project URL
-export const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // "anon public" key
+export const SUPABASE_ANON_KEY = 'sb_publishable_GnayppXIRyI1NqoR35EASg_6qsA71bQ'; // ✅ publishable (anon) key
 // ⚙️ --------------------------------------------------------------------------
 
 const SUPABASE_TABLES = {
