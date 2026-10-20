@@ -65,7 +65,7 @@ export function initAuth(dependencies) { deps = dependencies; }
 
 function isMissingTableError(err) {
   const msg = (err?.message || '').toLowerCase();
-  return msg.includes('does not exist') || msg.includes('relation') && msg.includes('not exist') || msg.includes('42p01');
+  return msg.includes('does not exist') || (msg.includes('relation') && msg.includes('not exist')) || msg.includes('42p01') || msg.includes('not configured') || msg.includes('supabase is not configured') || msg.includes('failed to fetch');
 }
 
 export async function restoreSession() {
