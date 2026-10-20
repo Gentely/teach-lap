@@ -1,30 +1,39 @@
 /**
  * supabase.js — Supabase configuration & data layer
  * ============================================================================
- * SABRATHA ELT Tech-Assistant (مساعد تكنولوجيا تدريس اللغة الإنجليزية)
+ * SABRATHA ELT Tech-Assistant (مساعد التدريس التفاعلي — جامعة صبراتة)
  * Sabratha University — Faculty of Arts & Education — Department of English
  * ----------------------------------------------------------------------------
- * Handles all database operations: saving & fetching lectures, AI analyses,
- * discussion-board comments and student reflections.
+ * Handles all database operations:
+ *   - courses (multi-course support)
+ *   - lectures (with course, date & time)
+ *   - analyses (AI-generated pedagogical content)
+ *   - comments (discussion board) & reflections
+ *   - students roster, attendance (حضور وغياب), gradebook (درجات)
  *
- * SETUP — paste your Supabase project credentials below (Supabase →
- * Project Settings → API). The anon key is safe to expose in the browser as
- * long as Row Level Security policies are in place (see supabase/schema.sql).
+ * The anon/publishable key is safe to expose in the browser as long as Row
+ * Level Security policies are in place (see supabase/schema.sql and
+ * supabase/upgrade_classroom.sql).
  *
  * This module is imported by app.js as an ES module and expects the Supabase
  * UMD client (window.supabase) to be loaded from CDN in index.html.
  * ========================================================================== */
 
-// ⚙️ ---- Supabase credentials (fill these in after creating your project) ----
+// ⚙️ ---- Supabase credentials ----
 export const SUPABASE_URL = 'https://revmwbfytjbukjccswmb.supabase.co'; // ✅ Supabase project URL
 export const SUPABASE_ANON_KEY = 'sb_publishable_GnayppXIRyI1NqoR35EASg_6qsA71bQ'; // ✅ publishable (anon) key
-// ⚙️ --------------------------------------------------------------------------
+// ⚙️ ------------------------------
 
 const SUPABASE_TABLES = {
+  courses: 'courses',
   lectures: 'lectures',
   analyses: 'analyses',
   comments: 'comments',
   reflections: 'reflections',
+  students: 'students',
+  attendance: 'attendance',
+  grade_items: 'grade_items',
+  grades: 'grades',
 };
 
 let client = null;
@@ -76,11 +85,39 @@ async function safe(promise) {
 }
 
 /* ==========================================================================
- * Lectures
+ * Courses (multi-course support — مقررات)
  * ======================================================================== */
 
-/** Save a new lecture. Returns { data: lecture, error }. */
-export async function saveLecture({ title, sourceText, outputLanguage }) {
+export async function saveCourse({ title, description }) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.courses)
+      .insert({ title, description: description || null })
+      .select()
+      .single()
+  );
+  return { data, error };
+}
+
+export async function fetchCourses() {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db.from(SUPABASE_TABLES.courses).select('id, title, description, created_at').order('created_at', { ascending: true })
+  );
+  return { data: data || [], error };
+}
+
+export async function deleteCourse(courseId) {
+  const db = requireClient();
+  return safe(db.from(SUPABASE_TABLES.courses).delete().eq('id', courseId));
+}
+
+/* ==========================================================================
+ * Lectures (now with course, date & time)
+ * ======================================================================== */
+
+export async function saveLecture({ title, sourceText, outputLanguage, courseId, lectureDate, lectureTime }) {
   const db = requireClient();
   const { data, error } = await safe(
     db
@@ -89,6 +126,9 @@ export async function saveLecture({ title, sourceText, outputLanguage }) {
         title: title || 'Untitled lecture',
         source_text: sourceText,
         output_language: outputLanguage || 'ar',
+        course_id: courseId || null,
+        lecture_date: lectureDate || null,
+        lecture_time: lectureTime || null,
       })
       .select()
       .single()
@@ -96,20 +136,19 @@ export async function saveLecture({ title, sourceText, outputLanguage }) {
   return { data, error };
 }
 
-/** Fetch newest lectures first (default 30). Returns { data: lectures[], error }. */
-export async function fetchLectures(limit = 30) {
+export async function fetchLectures({ limit = 50, courseId = null } = {}) {
   const db = requireClient();
-  const { data, error } = await safe(
-    db
-      .from(SUPABASE_TABLES.lectures)
-      .select('id, title, source_text, output_language, created_at')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-  );
+  let query = db
+    .from(SUPABASE_TABLES.lectures)
+    .select('id, title, source_text, output_language, course_id, lecture_date, lecture_time, created_at')
+    .order('lecture_date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (courseId) query = query.eq('course_id', courseId);
+  const { data, error } = await safe(query);
   return { data: data || [], error };
 }
 
-/** Delete a lecture (analyses/comments/reflections cascade via FK). */
 export async function deleteLecture(lectureId) {
   const db = requireClient();
   return safe(db.from(SUPABASE_TABLES.lectures).delete().eq('id', lectureId));
@@ -119,7 +158,6 @@ export async function deleteLecture(lectureId) {
  * AI analyses (generated pedagogical content)
  * ======================================================================== */
 
-/** Persist the Gemini-generated analysis for a lecture. */
 export async function saveAnalysis(lectureId, analysis, model) {
   const db = requireClient();
   const { data, error } = await safe(
@@ -142,7 +180,6 @@ export async function saveAnalysis(lectureId, analysis, model) {
   return { data, error };
 }
 
-/** Load the latest analysis for a lecture. Returns { data: analysis|null, error }. */
 export async function fetchAnalysis(lectureId) {
   const db = requireClient();
   const { data, error } = await safe(
@@ -161,7 +198,6 @@ export async function fetchAnalysis(lectureId) {
  * Discussion board (comments)
  * ======================================================================== */
 
-/** Post a comment on a lecture. Returns { data: comment, error }. */
 export async function addComment({ lectureId, authorName, authorRole, content }) {
   const db = requireClient();
   const { data, error } = await safe(
@@ -179,7 +215,6 @@ export async function addComment({ lectureId, authorName, authorRole, content })
   return { data, error };
 }
 
-/** Fetch comments for a lecture, oldest first. Returns { data: comments[], error }. */
 export async function fetchComments(lectureId) {
   const db = requireClient();
   const { data, error } = await safe(
@@ -196,7 +231,6 @@ export async function fetchComments(lectureId) {
  * Student reflections
  * ======================================================================== */
 
-/** Save a student's response to a reflection task. */
 export async function saveReflection({ lectureId, taskIndex, taskTitle, authorName, response }) {
   const db = requireClient();
   const { data, error } = await safe(
@@ -215,7 +249,6 @@ export async function saveReflection({ lectureId, taskIndex, taskTitle, authorNa
   return { data, error };
 }
 
-/** Fetch saved reflections for a lecture (newest first per task). */
 export async function fetchReflections(lectureId) {
   const db = requireClient();
   const { data, error } = await safe(
@@ -226,4 +259,154 @@ export async function fetchReflections(lectureId) {
       .order('created_at', { ascending: false })
   );
   return { data: data || [], error };
+}
+
+/* ==========================================================================
+ * Students roster (أسماء الطلبة والطالبات)
+ * ======================================================================== */
+
+export async function addStudent({ courseId, fullName, studentNumber }) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.students)
+      .insert({
+        course_id: courseId,
+        full_name: fullName,
+        student_number: studentNumber || null,
+      })
+      .select()
+      .single()
+  );
+  return { data, error };
+}
+
+export async function fetchStudents(courseId) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.students)
+      .select('id, course_id, full_name, student_number, created_at')
+      .eq('course_id', courseId)
+      .order('full_name', { ascending: true })
+  );
+  return { data: data || [], error };
+}
+
+export async function deleteStudent(studentId) {
+  const db = requireClient();
+  return safe(db.from(SUPABASE_TABLES.students).delete().eq('id', studentId));
+}
+
+/* ==========================================================================
+ * Attendance (الحضور والغياب)
+ * ======================================================================== */
+
+/** Upsert one student's status for a session date. */
+export async function upsertAttendance({ studentId, courseId, sessionDate, status }) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.attendance)
+      .upsert(
+        {
+          student_id: studentId,
+          course_id: courseId,
+          session_date: sessionDate,
+          status: status || 'present',
+        },
+        { onConflict: 'student_id,course_id,session_date' }
+      )
+      .select()
+      .single()
+  );
+  return { data, error };
+}
+
+/** Attendance rows for one course (optionally filtered by session date). */
+export async function fetchAttendance({ courseId, sessionDate = null }) {
+  const db = requireClient();
+  let query = db
+    .from(SUPABASE_TABLES.attendance)
+    .select('id, student_id, course_id, session_date, status')
+    .eq('course_id', courseId);
+  if (sessionDate) query = query.eq('session_date', sessionDate);
+  const { data, error } = await safe(query);
+  return { data: data || [], error };
+}
+
+/* ==========================================================================
+ * Gradebook (الدرجات — أعمال السنة / الحضور والغياب / الاختبارات)
+ * ======================================================================== */
+
+export async function addGradeItem({ courseId, category, title, maxScore }) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.grade_items)
+      .insert({
+        course_id: courseId,
+        category,
+        title,
+        max_score: maxScore ?? 100,
+      })
+      .select()
+      .single()
+  );
+  return { data, error };
+}
+
+export async function fetchGradeItems(courseId) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.grade_items)
+      .select('id, course_id, category, title, max_score, created_at')
+      .eq('course_id', courseId)
+      .order('created_at', { ascending: true })
+  );
+  return { data: data || [], error };
+}
+
+export async function deleteGradeItem(itemId) {
+  const db = requireClient();
+  return safe(db.from(SUPABASE_TABLES.grade_items).delete().eq('id', itemId));
+}
+
+/** Upsert one student's score for one grade item. */
+export async function upsertGrade({ itemId, studentId, score }) {
+  const db = requireClient();
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.grades)
+      .upsert(
+        {
+          item_id: itemId,
+          student_id: studentId,
+          score: score === '' || score == null ? null : Number(score),
+        },
+        { onConflict: 'item_id,student_id' }
+      )
+      .select()
+      .single()
+  );
+  return { data, error };
+}
+
+/** All grade rows for a course's items (item ids provided). */
+export async function fetchGrades(itemIds) {
+  const db = requireClient();
+  if (!itemIds || !itemIds.length) return { data: [], error: null };
+  const { data, error } = await safe(
+    db
+      .from(SUPABASE_TABLES.grades)
+      .select('id, item_id, student_id, score')
+      .in('item_id', itemIds)
+  );
+  return { data: data || [], error };
+}
+
+export async function deleteGrade(gradeId) {
+  const db = requireClient();
+  return safe(db.from(SUPABASE_TABLES.grades).delete().eq('id', gradeId));
 }
