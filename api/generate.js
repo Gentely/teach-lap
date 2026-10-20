@@ -16,7 +16,9 @@
  * variable `process.env.GEMINI_API_KEY` — it is never exposed to the browser.
  * ========================================================================== */
 
-const GEMINI_MODEL_DEFAULT = 'gemini-2.0-flash';
+const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash';
+// Fallbacks tried automatically if the primary model is unavailable/retired.
+const FALLBACK_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash-lite'];
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Read credentials at request time so env changes are always picked up. */
@@ -268,7 +270,8 @@ export default async function handler(req, res) {
     return fail(res, 400, 'TEXT_TOO_LONG', `Lecture text must not exceed ${MAX_CHARS} characters.`);
   }
 
-  try {
+  // Helper to call one model
+  async function callGemini(targetModel) {
     const payload = {
       contents: [{ role: 'user', parts: [{ text: buildPrompt({ title, text: trimmed, outputLanguage }) }] }],
       generationConfig: {
@@ -279,19 +282,38 @@ export default async function handler(req, res) {
         responseSchema: RESPONSE_SCHEMA,
       },
     };
-
-    const url = `${GEMINI_ENDPOINT}/${encodeURIComponent(model)}:generateContent`;
+    const url = `${GEMINI_ENDPOINT}/${encodeURIComponent(targetModel)}:generateContent`;
     const upstream = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(90000),
     });
-
     const result = await upstream.json().catch(() => ({}));
+    return { upstream, result };
+  }
+
+  function isModelUnavailableMessage(msg) {
+    return /is no longer available|has been removed|not found|Unsupported model|does not exist/i.test(msg || '');
+  }
+
+  try {
+    let tried = [];
+    let currentModel = model;
+    let upstream, result;
+
+    // Try primary + fallbacks sequentially
+    const candidates = [model, ...FALLBACK_MODELS.filter((m) => m !== model)];
+    for (const m of candidates) {
+      tried.push(m);
+      ({ upstream, result } = await callGemini(m));
+      currentModel = m;
+      if (upstream.ok) break;
+      const apiMsg = result?.error?.message || '';
+      // Only retry on model-unavailability; otherwise surface the real error
+      if (!isModelUnavailableMessage(apiMsg)) break;
+      // otherwise continue to next fallback
+    }
 
     if (!upstream.ok) {
       const status = upstream.status;
@@ -305,7 +327,8 @@ export default async function handler(req, res) {
       if (status === 429) {
         return fail(res, 429, 'RATE_LIMIT', 'Gemini API rate limit reached. Please wait a moment and try again.');
       }
-      return fail(res, 502, 'GEMINI_ERROR', `Gemini API error: ${apiMessage}`);
+      const hint = tried.length > 1 ? ` (tried: ${tried.join(', ')})` : '';
+      return fail(res, 502, 'GEMINI_ERROR', `Gemini API error: ${apiMessage}${hint}`);
     }
 
     const candidate = result?.candidates?.[0];
@@ -327,7 +350,8 @@ export default async function handler(req, res) {
       success: true,
       data,
       meta: {
-        model,
+        model: currentModel,
+        requestedModel: model,
         generatedAt: new Date().toISOString(),
         chars: trimmed.length,
         outputLanguage,
