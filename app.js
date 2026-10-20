@@ -376,25 +376,34 @@ function showAuth(show) {
 
 async function refreshSupervisorData() {
   if (!auth.isAdmin()) return;
-  // Teachers
-  const { data: teachers } = await db.fetchProfiles({ role: 'teacher' });
+  // Teachers — try DB then local fallback
+  let teachers = [];
+  try { const { data } = await db.fetchProfiles({ role: 'teacher' }); teachers = data || []; } catch {}
+  if (!teachers.length) {
+    // fallback local
+    try { const locals = auth.getLocalProfilesList ? auth.getLocalProfilesList().filter(p => p.role === 'teacher') : []; if (locals.length) teachers = locals; } catch {}
+  }
   const list = document.getElementById('teachers-list'); list.innerHTML = '';
   if (!teachers || !teachers.length) list.appendChild(el('p', 'text-sm text-brand-900/60', state.lang === 'ar' ? 'لا يوجد أساتذة بعد.' : 'No teachers yet.'));
   else teachers.forEach(tch => {
     const card = el('div', 'bg-white rounded-2xl p-4 border-2 border-brand-900/10');
-    card.appendChild(el('p', 'font-extrabold text-brand-900 text-sm', tch.full_name));
+    card.appendChild(el('p', 'font-extrabold text-brand-900 text-sm', tch.full_name || tch.fullName || '—'));
     card.appendChild(el('p', 'text-xs text-slate-500', `${tch.title || ''} ${tch.subjects ? '— ' + tch.subjects : ''}`));
-    card.appendChild(el('p', 'text-xs text-slate-400', `${tch.academic_year || ''} • ${tch.code}`));
+    card.appendChild(el('p', 'text-xs text-slate-400', `${tch.academic_year || tch.academicYear || ''} • ${tch.code}`));
     list.appendChild(card);
   });
   // Invites
-  const { data: invites } = await db.fetchInvites();
+  let invites = [];
+  try { const { data } = await db.fetchInvites(); invites = data || []; } catch {}
+  if (!invites.length) {
+    try { const locals = auth.getLocalInvitesList ? auth.getLocalInvitesList() : []; if (locals.length) invites = locals; } catch {}
+  }
   const invList = document.getElementById('invites-list'); invList.innerHTML = '';
   if (!invites || !invites.length) invList.appendChild(el('p', 'text-sm text-brand-900/60', '—'));
   else invites.forEach(inv => {
     const row = el('div', 'flex items-center gap-3 bg-white rounded-xl p-3 border-2 border-brand-900/10 text-sm');
     row.appendChild(el('span', 'font-mono font-bold text-brand-900', inv.code));
-    row.appendChild(el('span', 'flex-1 text-slate-600 text-xs', `${inv.for_name} — ${inv.used ? (state.lang === 'ar' ? 'مستخدم' : 'used') : (state.lang === 'ar' ? 'غير مستخدم' : 'unused')}`));
+    row.appendChild(el('span', 'flex-1 text-slate-600 text-xs', `${inv.for_name || inv.forName || ''} — ${inv.used ? (state.lang === 'ar' ? 'مستخدم' : 'used') : (state.lang === 'ar' ? 'غير مستخدم' : 'unused')}`));
     const copy = el('button', 'px-3 py-1 rounded-lg bg-brand-800 text-white text-xs font-bold', state.lang === 'ar' ? 'نسخ' : 'Copy');
     copy.addEventListener('click', () => copyText(inv.code)); row.appendChild(copy);
     invList.appendChild(row);
@@ -412,35 +421,42 @@ function initAuthHandlers() {
   // Teacher login/register
   document.getElementById('teacher-login-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const code = document.getElementById('teacher-code').value.trim();
+    const codeEl = document.getElementById('teacher-code');
+    const code = codeEl.value.trim();
     const msg = document.getElementById('auth-msg-teacher'); msg.textContent = '';
+    // If admin code entered in teacher tab, route to admin login automatically
+    if (code.toUpperCase() === 'ENAS-SUPERVISOR') {
+      try { const p = await auth.loginAsAdmin({ code }); onLoginSuccess(p); return; } catch (err) { msg.textContent = err.message; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; return; }
+    }
     const onboarding = document.getElementById('teacher-onboarding');
     const needOnboarding = !onboarding.classList.contains('hidden') || onboarding.dataset.armed === '1';
-    // If onboarding visible, require its fields
     let fullName = document.getElementById('t-fullname').value.trim();
     let title = document.getElementById('t-title').value.trim();
     let subjects = document.getElementById('t-subjects').value.trim();
     let years = document.getElementById('t-years').value.trim();
+    msg.textContent = state.lang === 'ar' ? 'جاري التحقق...' : 'Checking...'; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-slate-500';
     try {
-      // First check if code corresponds to existing profile -> login
-      const { data: existing } = await db.fetchProfileByCode(code.toUpperCase());
-      if (existing) { auth.setSession(existing); onLoginSuccess(); return; }
-      // Check invite
-      const { data: invite } = await db.fetchInvite(code.toUpperCase());
-      if (!invite) { // no invite, show onboarding to create direct if admin allowed? For now require valid invite
-        if (!needOnboarding) {
-          onboarding.classList.remove('hidden'); onboarding.dataset.armed = '1';
-          msg.textContent = state.lang === 'ar' ? 'رمز جديد — أكمل بياناتك ثم اضغط دخول مرة أخرى.' : 'New code — complete your profile and submit again.';
-          msg.className = 'text-xs text-center mt-3 min-h-[18px] text-brand-700 font-bold';
-          return;
-        }
-        throw new Error(t('err_code_invalid'));
+      // Allow direct login if profile already exists (via auth helper which handles fallback)
+      const profile = await auth.redeemInvite({ code, fullName: fullName || undefined, title, subjects, academicYear: years });
+      // If we got here without fullName and it's a new invite, redeemInvite will have shown onboarding need? Actually it handles admin code above.
+      // Check if onboarding needed: redeemInvite throws err_code_invalid when no invite and not admin
+      onLoginSuccess(profile); return;
+    } catch (err) {
+      // If it's a new invite and we haven't shown onboarding, show it
+      const errMsg = err.message || '';
+      if (!needOnboarding && (errMsg.includes(t('err_code_invalid')) || errMsg.includes('رمز جديد'))) {
+        // Try to detect if it's a fresh code that needs onboarding: show onboarding
+        onboarding.classList.remove('hidden'); onboarding.dataset.armed = '1';
+        msg.textContent = state.lang === 'ar' ? 'رمز جديد — أكمل بياناتك (الاسم، الصفة، المواد، السنوات) ثم اضغط دخول مرة أخرى.' : 'New code — complete your profile and submit again.';
+        msg.className = 'text-xs text-center mt-3 min-h-[18px] text-brand-700 font-bold';
+        return;
       }
-      if (invite.used) throw new Error(t('err_code_used'));
-      if (!fullName) { onboarding.classList.remove('hidden'); msg.textContent = state.lang === 'ar' ? 'أدخل اسمك الكامل لإتمام التسجيل.' : 'Enter your full name.'; msg.className = 'text-xs text-center mt-3 text-red-600 font-bold'; return; }
-      const profile = await auth.redeemInvite({ code, fullName, title, subjects, academicYear: years });
-      onLoginSuccess(profile);
-    } catch (err) { msg.textContent = err.message; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold'; }
+      if (errMsg.includes('أدخل اسمك') || errMsg.includes('full name')) {
+        onboarding.classList.remove('hidden');
+        msg.textContent = errMsg; msg.className = 'text-xs text-center mt-3 text-red-600 font-bold'; return;
+      }
+      msg.textContent = err.message; msg.className = 'text-xs text-center mt-3 min-h-[18px] text-red-600 font-bold';
+    }
   });
 
   document.getElementById('admin-login-form').addEventListener('submit', async e => {
