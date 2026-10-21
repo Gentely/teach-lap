@@ -6,8 +6,8 @@
  */
 
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const FALLBACKS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+const FALLBACKS = ['gemini-3-flash', 'gemini-3-pro', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
 const getKey = () => process.env.GEMINI_API_KEY || '';
 const MIN = 40;
