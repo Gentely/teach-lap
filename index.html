@@ -3,850 +3,270 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SABRATHA ELT Tech-Assistant | مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</title>
-  <script>
-  // GLOBAL logout — defined BEFORE any UI, works even without session/app.js (fixes Samsung + header)
-  (function(){
-    try{
-      window._doGlobalLogout=function(ev){
-        if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} try{ ev.stopImmediatePropagation&&ev.stopImmediatePropagation(); }catch(e){} }
-        var __k=['sabratha_session_v2','sabratha_elt_name']; // keep invites/profiles across logout
-        for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0;'; }catch(e){} if(window.memStore) try{ delete window.memStore[k2]; }catch(e){} }
-        try{ window._fallbackSession=null; }catch(e){} try{ if(window.__auth_memStore) window.__auth_memStore={}; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){} try{ sessionStorage.setItem('sabratha_logout_done','1'); }catch(e){}
-        try{ if(window.__clearAuthSession) window.__clearAuthSession(); }catch(e){}
-        try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){}
-        try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e){ try{ location.replace(location.origin+location.pathname+'?logout=1'); }catch(e2){ location.reload(); } }
-        return false;
-      };
-    }catch(e){}
-  })();
-  function updateHeaderFallback(sess){
-    try{
-      var badge=document.getElementById('user-badge'); var nameEl=document.getElementById('user-name'); var roleEl=document.getElementById('user-role'); var heroProfile=document.getElementById('hero-profile'); var globalSec=document.getElementById('global-logout-section');
-      if(!sess || !sess.code){ if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if(heroProfile) heroProfile.classList.add('hidden'); if(globalSec){ globalSec.classList.add('hidden'); globalSec.style.display='none'; } return; }
-      if(badge){ badge.classList.remove('hidden'); badge.classList.add('flex'); }
-      if(nameEl) nameEl.textContent=sess.full_name||sess.code||'';
-      if(roleEl) roleEl.textContent=sess.role==='admin' ? 'مشرفة' : 'أستاذ';
-      if(heroProfile){
-        heroProfile.classList.remove('hidden');
-        var hw=document.getElementById('hero-welcome'); if(hw) hw.textContent=sess.role==='admin' ? 'مرحبًا — المشرفة إيناس' : 'مرحبًا، '+(sess.full_name||'');
-        var hs=document.getElementById('hero-subjects'); if(hs) hs.textContent=sess.subjects ? 'المواد: '+sess.subjects : '';
-        var hy=document.getElementById('hero-years'); if(hy) hy.textContent=sess.academic_year ? 'السنوات: '+sess.academic_year : '';
-        var hsc=document.getElementById('hero-schedule'); if(hsc) hsc.textContent=sess.schedule ? 'الأوقات: '+sess.schedule : '';
-      }
-      if(globalSec){ globalSec.classList.remove('hidden'); globalSec.style.display=''; }
-    }catch(e){}
-  }
-  // bind global logout button as soon as DOM ready
-  (function(){
-    function bindLogoutBtns(){
-      try{
-        var b=document.getElementById('btn-global-logout'); if(b && !b._fb2){ b._fb2=true; b.addEventListener('click', window._doGlobalLogout); }
-      }catch(e){}
-    }
-    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindLogoutBtns);
-    else bindLogoutBtns();
-    setTimeout(bindLogoutBtns,500); setTimeout(bindLogoutBtns,1500);
-  })();
-  // ULTRA fallback — ?enas=1 direct login, old Samsung compatible (no ?.)
-  (function(){
-    try{
-      var href = window.location.href || '';
-      var search = window.location.search || '';
-      // ?logout=1 clears session — robust for Samsung blocked storage
-      if(href.indexOf('logout=1')>-1 || search.indexOf('logout=1')>-1){
-        var __keys=['sabratha_session_v2','sabratha_elt_name']; // keep invites/profiles
-        for(var i=0;i<__keys.length;i++){ var k=__keys[i]; try{ localStorage.removeItem(k); }catch(e){} try{ sessionStorage.removeItem(k); }catch(e){} try{ document.cookie=k+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k+'=; path=/; max-age=0;'; }catch(e){} if(window.memStore) try{ delete window.memStore[k]; }catch(e){} }
-        try{ window._fallbackSession=null; }catch(e){}
-        if(window.__auth_memStore) try{ window.__auth_memStore={}; }catch(e){}
-        try{ if(window.__clearAuthSession) window.__clearAuthSession(); }catch(e){}
-        try{ sessionStorage.setItem('sabratha_logout_done','1'); }catch(e){}
-        // force overlay visible and hide supervisor immediately, and clean URL
-        var __doLogoutUI=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var gl=document.getElementById('global-logout-section'); if(gl){ gl.classList.add('hidden'); gl.style.display='none'; } var hr=document.getElementById('hero'); if(hr){ hr.classList.add('hidden'); hr.style.display='none'; } try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){} }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
-        if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',__doLogoutUI); else __doLogoutUI();
-        // stop further auto-restore for this load
-        try{ window.__logoutJustDone=true; }catch(e){}
-      }
-      if(href.indexOf('enas=1')>-1 || href.indexOf('ENAS-SUPERVISOR')>-1 || search.indexOf('enas')>-1){
-        var ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',schedule:'حسب الجدول الدراسي',created_at:new Date().toISOString()};
-        var KEY='sabratha_session_v2';
-        var data=JSON.stringify(ADMIN);
-        try{ localStorage.setItem(KEY,data);}catch(e){}
-        try{ sessionStorage.setItem(KEY,data);}catch(e){}
-        try{ document.cookie=KEY+'='+encodeURIComponent(data)+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e){}
-        try{ window._fallbackSession=ADMIN; }catch(e){}
-        var doHide=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } updateHeaderFallback(ADMIN); }catch(e){} };
-        if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide); else doHide();
-      } else {
-        // Also restore if cookie session exists (for reload without ?enas=1 when localStorage blocked)
-        // BUT role-aware: only show supervisor-panel if role is admin; skip if we just logged out
-        try{
-          if(window.__logoutJustDone) throw new Error('skip restore after logout');
-          var KEY='sabratha_session_v2';
-          var raw=null;
-          try{ raw=localStorage.getItem(KEY); }catch(e){}
-          if(!raw){ try{ raw=sessionStorage.getItem(KEY); }catch(e){} }
-          if(!raw){ try{ var m=document.cookie.match(/(?:^|; )sabratha_session_v2=([^;]*)/); if(m) raw=decodeURIComponent(m[1]); }catch(e){} }
-          if(!raw && window._fallbackSession) { try{ raw=JSON.stringify(window._fallbackSession); }catch(e){} }
-          if(raw){
-            var role=null; try{ var sess=JSON.parse(raw); role=sess.role||null; }catch(e){}
-            var _sess2=null; try{ _sess2=JSON.parse(raw); }catch(e){}
-            var doHide2=function(){ try{
-              if(window.__logoutJustDone) return;
-              var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none';
-              var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; }
-              var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; }
-              var sp=document.getElementById('supervisor-panel');
-              if(sp){
-                if(role==='admin'){ sp.classList.remove('hidden'); sp.style.display=''; }
-                else { sp.classList.add('hidden'); sp.style.display='none'; }
-              }
-              updateHeaderFallback(_sess2);
-            }catch(e){} };
-            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide2); else doHide2();
-          }
-        }catch(e){}
-      }
-      }
-    }catch(e){}
-  })();
-  </script>
-  <meta name="description" content="مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة. Private platform supervised by Enas Mesbah Omar." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230F4C5C'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23E3B23C' font-family='Arial'%3E%E2%9C%8E%3C/text%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <title>SABRATHA ELT Tech-Assistant | مولد محاضرات ELT</title>
+  <meta name="description" content="مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة — يحول محتوى المحاضرة إلى مادة تربوية تفاعلية باستخدام Google Gemini." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230F4C5C'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23E3B23C'%3E✎%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            brand: { 900: '#0B3C49', 800: '#0F4C5C', 700: '#14657A', 600: '#1B7E99', 500: '#2A8FA8', 100: '#E6F2F5', 50: '#F2F9FB' },
-            gold: { 700: '#A67C00', 600: '#C99700', 500: '#E3B23C', 100: '#FBF1D6' },
-            sand: '#FBF8F3',
+            brand: { 900:'#0B3C49',800:'#0F4C5C',700:'#14657A',600:'#1B7E99',500:'#2A8FA8',100:'#E6F2F5',50:'#F2F9FB' },
+            gold: { 500:'#E3B23C',100:'#FBF1D6' },
+            sand: '#FBF8F3'
           },
-          fontFamily: { tajawal: ['Tajawal', 'sans-serif'], inter: ['Inter', 'sans-serif'] },
-          boxShadow: { card: '0 10px 30px -12px rgba(11, 60, 73, 0.18)' },
-        },
-      },
-    };
+          fontFamily: { tajawal:['Tajawal','sans-serif'] },
+          boxShadow: { card:'0 10px 30px -12px rgba(11,60,73,.18)' }
+        }
+      }
+    }
   </script>
   <style>
-    html[lang="ar"] body { font-family: 'Tajawal', sans-serif; }
-    html[lang="en"] body { font-family: 'Inter', sans-serif; }
-    html { scroll-behavior: smooth; }
-    .fade-in { animation: fadeIn .45s ease both; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-    .tab-active { background: #0F4C5C; color: #fff; box-shadow: 0 8px 20px -8px rgba(15, 76, 92, .55); }
-    details > summary { list-style: none; cursor: pointer; }
-    details > summary::-webkit-details-marker { display: none; }
-    details[open] .chevron { transform: rotate(180deg); }
-    .drop-zone.dragover { border-color: #14657A; background: #E6F2F5; }
-    .classroom-tab-btn.tab-active { background: #0F4C5C; color: #fff; }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { background: #F2F9FB; }
-    ::-webkit-scrollbar-thumb { background: #9DBEC8; border-radius: 8px; }
-    @media print {
-      header, footer, #hero, #input-section, #course-section, #classroom-section, #sidebar, #features-section, .no-print, #loading-overlay, #toast-container, #auth-overlay { display: none !important; }
-      #results-section { display: block !important; }
-      .tab-panel { display: block !important; }
-      body { background: #fff; }
-    }
+    html[lang="ar"] body{font-family:'Tajawal',sans-serif}
+    .fade-in{animation:fadeIn .4s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   </style>
 </head>
+<body class="bg-sand text-slate-800 antialiased min-h-screen flex flex-col">
 
-<body class="bg-sand text-slate-800 antialiased">
-
-  <!-- ======================= AUTH OVERLAY (PRIVATE SITE) — two separate boxes ======================= -->
-  <div id="auth-overlay" class="fixed inset-0 z-[70] bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden my-4">
-      <div class="bg-brand-900 text-white p-6 text-center">
-        <div class="w-14 h-14 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center text-2xl font-extrabold mx-auto">S</div>
-        <h1 class="mt-3 text-xl font-extrabold">SABRATHA ELT Tech-Assistant</h1>
-        <p class="text-xs text-brand-100 mt-1">مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</p>
-        <p class="text-[11px] text-gold-500 font-bold mt-2">🔒 موقع خاص — بإشراف الأستاذة إيناس مصباح عمر</p>
-      </div>
-
-      <div class="p-6">
-        <div class="grid md:grid-cols-2 gap-6">
-          <!-- Teacher box — مستقل -->
-          <div class="rounded-2xl border-2 border-brand-200 bg-brand-50/70 p-5 flex flex-col">
-            <h3 class="font-extrabold text-brand-900 flex items-center gap-2 text-base">🎓 دخول الأستاذ / الأستاذة</h3>
-            <p class="text-xs text-slate-500 mt-1">أدخل رمز الدعوة الذي أرسلته لك المشرفة إيناس.</p>
-            <form id="teacher-login-form" class="space-y-3 mt-4" novalidate>
-              <input id="teacher-code" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="رمز الدعوة — مثال: ELT-A1B2C3"
-                class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-center font-mono tracking-widest uppercase bg-white" />
-              <div id="teacher-onboarding" class="hidden space-y-3 border-t-2 border-slate-100 pt-4">
-                <p class="text-sm font-extrabold text-brand-900">أكمل ملفك الشخصي (اختياري الآن — يمكنك إكماله بعد الدخول)</p>
-                <input id="t-fullname" type="text" maxlength="80" placeholder="الاسم الكامل" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm bg-white" />
-                <input id="t-title" type="text" maxlength="80" placeholder="الصفة — مثال: أستاذ مساعد / محاضر" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm bg-white" />
-                <input id="t-subjects" type="text" maxlength="200" placeholder="المواد التي تدرّسها — مثال: ELT, Linguistics" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm bg-white" />
-                <input id="t-years" type="text" maxlength="200" placeholder="السنوات الدراسية — مثال: السنة الثانية والثالثة" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm bg-white" />
-                <p class="text-xs text-slate-400">بعد حفظها ستنشأ صفحتك الخاصة حسب سنواتك ومقرراتك. يمكنك تركها فارغة والدخول مباشرة بالرمز.</p>
-              </div>
-              <button type="submit" id="btn-teacher-submit" class="w-full py-3 rounded-xl bg-brand-800 text-white font-extrabold hover:bg-brand-900 transition active:scale-[0.98]">دخول / تفعيل الرمز</button>
-            </form>
-            <p id="auth-msg-teacher" class="text-xs text-center mt-3 min-h-[18px] font-bold"></p>
-            <p class="text-[11px] text-slate-400 text-center mt-auto pt-2">إذا لم يكن لديك رمز، تواصل مع المشرفة.</p>
-          </div>
-
-          <!-- Admin box — مستقل -->
-          <div class="rounded-2xl border-2 border-gold-500 bg-gold-100/60 p-5 flex flex-col">
-            <h3 class="font-extrabold text-brand-900 flex items-center gap-2 text-base">👑 دخول المشرفة إيناس</h3>
-            <p class="text-xs text-slate-600 mt-1">للمشرفة العامة فقط. الرمز الافتراضي:</p>
-            <p class="text-xs font-mono font-extrabold text-brand-800 bg-white rounded-lg px-3 py-1.5 border border-gold-200 inline-block mx-auto mt-1">ENAS-SUPERVISOR</p>
-            <form id="admin-login-form" class="space-y-3 mt-4" novalidate>
-              <input id="admin-code" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="أدخل رمز المشرفة هنا"
-                class="w-full rounded-xl border-2 border-gold-300 focus:border-brand-800 outline-none px-4 py-3 text-center font-mono tracking-widest uppercase bg-white" />
-              <button type="submit" id="btn-admin-submit" class="w-full py-3 rounded-xl bg-gold-500 text-brand-900 font-extrabold hover:bg-gold-600 transition active:scale-[0.98] shadow">دخول المشرفة</button>
-            </form>
-            <p id="auth-msg-admin" class="text-xs text-center mt-3 min-h-[18px] font-bold"></p>
-            <button id="btn-emergency-login" type="button" class="w-full mt-2 py-2.5 rounded-xl bg-white border-2 border-brand-800 text-brand-900 text-xs font-extrabold hover:bg-brand-50 transition flex items-center justify-center gap-2">
-              🚀 دخول فوري كمشرفة (بدون انتظار)
-            </button>
-            <p class="text-[10px] text-slate-400 text-center">للموبايل — يعمل حتى لو زر الدخول لا يستجيب</p>
-            <p class="text-[11px] text-slate-500 text-center mt-2">هذا المربع مخصص للمشرفة فقط.</p>
-          </div>
-        </div>
-        <!-- Hidden legacy tab elements for backward compat -->
-        <div class="hidden" aria-hidden="true">
-          <button id="auth-tab-teacher"></button><button id="auth-tab-admin"></button>
-          <div id="auth-teacher-panel"></div><div id="auth-admin-panel"></div>
-        </div>
-        <p class="text-[11px] text-slate-400 text-center border-t border-slate-100 pt-4 mt-6">لا يظهر محتوى الموقع إلا بعد تسجيل الدخول برمز صحيح.</p>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- ======================= ONBOARDING MODAL (incomplete profile) ======================= -->
-  <div id="onboarding-modal" class="hidden fixed inset-0 z-[68] bg-brand-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6">
-      <h3 class="text-lg font-extrabold text-brand-900">أكمل بياناتك</h3>
-      <p class="text-sm text-slate-500 mt-1">حتى تُجهّز صفحتك الخاصة حسب سنواتك وموادك.</p>
-      <form id="onboarding-form" class="space-y-3 mt-5">
-        <input id="ob-fullname" type="text" maxlength="80" required placeholder="الاسم الكامل *"
-          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
-        <input id="ob-title" type="text" maxlength="80" placeholder="الصفة"
-          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
-        <input id="ob-subjects" type="text" maxlength="200" placeholder="المواد التي تدرّسها"
-          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
-        <input id="ob-years" type="text" maxlength="200" placeholder="السنوات الدراسية"
-          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
-        <input id="ob-schedule" type="text" maxlength="200" placeholder="أوقات المحاضرات الأسبوعية — مثال: الأحد 10-12، الثلاثاء 14-16"
-          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
-        <button type="submit" class="w-full py-3 rounded-xl bg-brand-800 text-white font-extrabold">حفظ وفتح صفحتي</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ======================= HEADER ======================= -->
-  <header class="sticky top-0 z-40 bg-brand-900/95 backdrop-blur text-white shadow-lg">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16 sm:h-20 gap-3">
-        <a href="#" class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center text-xl sm:text-2xl font-extrabold shadow-md shrink-0">S</div>
-          <div class="min-w-0">
-            <h1 class="text-base sm:text-xl font-extrabold leading-tight truncate">SABRATHA ELT Tech-Assistant</h1>
-            <p class="text-[11px] sm:text-xs text-brand-100 truncate">كلية الآداب والتربية — قسم اللغة الإنجليزية</p>
-          </div>
-        </a>
-        <div class="flex items-center gap-2 shrink-0">
-          <div id="user-badge" class="hidden items-center gap-2 bg-white/10 rounded-xl px-3 py-2 text-xs">
-            <span id="user-name" class="font-bold"></span>
-            <span id="user-role" class="px-2 py-0.5 rounded-full bg-gold-500 text-brand-900 font-extrabold text-[10px]"></span>
-          </div>
-          <a href="#classroom-section" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
-            <span data-i18n="nav_classroom">إدارة الصف</span>
-          </a>
-          <button id="btn-lang" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gold-500 text-brand-900 hover:bg-gold-600 transition text-sm font-extrabold shadow">
-            <span id="btn-lang-label">EN</span>
-          </button>
+  <!-- Header -->
+  <header class="bg-brand-900 text-white shadow">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gold-500 text-brand-900 grid place-items-center font-extrabold text-xl">S</div>
+        <div>
+          <h1 class="font-extrabold leading-none">SABRATHA ELT Tech-Assistant</h1>
+          <p class="text-xs text-brand-100">كلية الآداب والتربية — قسم اللغة الإنجليزية — جامعة صبراتة</p>
         </div>
       </div>
+      <span class="hidden sm:inline-flex items-center gap-2 text-xs bg-white/10 border border-white/20 rounded-full px-3 py-1.5">Phase 1 • Vercel + Gemini</span>
     </div>
   </header>
 
-  <!-- ======================= HERO ======================= -->
-  <section id="hero" class="relative overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
-    <div class="absolute inset-0 opacity-15" style="background-image: radial-gradient(circle at 85% 15%, #E3B23C 0, transparent 42%), radial-gradient(circle at 12% 88%, #2A8FA8 0, transparent 45%);"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-      <div class="grid lg:grid-cols-5 gap-8 items-center">
-        <div class="lg:col-span-3">
-          <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs sm:text-sm font-semibold">
-            <span class="w-2 h-2 rounded-full bg-gold-500 animate-pulse"></span>
-            <span data-i18n="hero_badge">كلية الآداب والتربية — قسم اللغة الإنجليزية</span>
-          </span>
-          <h2 class="mt-4 text-3xl sm:text-4xl font-extrabold leading-tight" data-i18n="hero_title">توظيف التكنولوجيا في تدريس اللغة الإنجليزية</h2>
-          <p class="mt-3 text-base text-brand-100 max-w-2xl leading-relaxed" data-i18n="hero_sub">منصة خاصة بإشراف الأستاذة إيناس مصباح عمر — لكل أستاذ صفحته ومقرراته وطلبته.</p>
-          <div id="hero-profile" class="hidden mt-4 p-4 rounded-2xl bg-white/10 border border-white/20 text-sm">
-            <p class="font-extrabold" id="hero-welcome"></p>
-            <p class="text-brand-100 text-xs mt-1" id="hero-subjects"></p>
-            <p class="text-brand-100 text-xs" id="hero-years"></p>
-            <p class="text-brand-100 text-xs" id="hero-schedule"></p>
-          </div>
-        </div>
-        <div class="lg:col-span-2">
-          <div class="rounded-3xl bg-white/10 border border-white/20 p-5 backdrop-blur-sm shadow-2xl">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="w-10 h-10 rounded-2xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold">AI</div>
-              <div>
-                <p class="font-extrabold text-sm">Google Gemini</p>
-                <p class="text-xs text-brand-100" data-i18n="hero_card_sub">مدعوم بالذكاء الاصطناعي</p>
-              </div>
-            </div>
-            <ul class="space-y-2 text-sm">
-              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_1">ملخصات تربوية ومفاهيم جوهرية</span></li>
-              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_2">تطبيقات للصفوف الليبية</span></li>
-              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_3">سيناريوهات بنماذج إجابة</span></li>
-              <li class="flex items-start gap-2.5"><span class="text-gold-500">✓</span><span data-i18n="hero_feat_4">مهام تأمل</span></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+  <!-- Hero -->
+  <section class="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <h2 class="text-2xl sm:text-3xl font-extrabold">توظيف التكنولوجيا في تدريس اللغة الإنجليزية</h2>
+      <p class="text-brand-100 mt-2 max-w-3xl text-sm sm:text-base">الصق محتوى محاضرتك، اختر لغة النتائج، واضغط توليد — يحولها الذكاء الاصطناعي إلى ملخص تربوي، مفاهيم جوهرية، تطبيقات ليبية، سيناريوهات بأسئلة ونماذج إجابة، ومهام تأمل.</p>
     </div>
   </section>
 
-  <!-- ======================= SUPERVISOR PANEL (Enas only) ======================= -->
-  <section id="supervisor-panel" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-    <div class="bg-gradient-to-l from-gold-500 to-gold-600 rounded-3xl p-6 shadow-card">
-      <h3 class="text-lg font-extrabold text-brand-900 flex items-center gap-2">👑 لوحة المشرفة العامة — الأستاذة إيناس مصباح عمر</h3>
-      <p class="text-sm text-brand-900/80 mt-1">أدخل اسم الأستاذ ثم ولّد له رمز دعوة خاص — لا يراه إلا أنت وهو.</p>
-      <form id="generate-code-form" class="mt-4 flex flex-wrap gap-3" onsubmit="return false" novalidate>
-        <input id="new-teacher-name" type="text" maxlength="80" required placeholder="اسم الأستاذ / الأستاذة — مثال: د. أحمد علي"
-          class="flex-1 min-w-[200px] rounded-xl border-2 border-white focus:border-brand-800 outline-none px-4 py-3 text-sm" />
-        <button id="btn-generate-code" type="submit" onclick="try{ if(window._fallbackGenCode) return window._fallbackGenCode(event);}catch(e){}" class="px-6 py-3 rounded-xl bg-brand-900 text-white font-extrabold hover:bg-brand-800 transition active:scale-95">⚡ توليد كود</button>
-      </form>
-      <div id="generated-code-box" class="hidden mt-4 p-4 bg-white rounded-2xl border-2 border-brand-900">
-        <p class="text-xs font-bold text-slate-500">الرمز المولّد لـ <span id="gen-for-name" class="text-brand-900"></span>:</p>
-        <div class="mt-2 flex items-center gap-3">
-          <code id="gen-code" class="flex-1 font-mono text-lg font-extrabold tracking-widest text-brand-900"></code>
-          <button id="btn-copy-code" class="px-4 py-2 rounded-xl bg-brand-800 text-white text-xs font-bold">نسخ</button>
-          <button id="btn-share-code" class="px-4 py-2 rounded-xl bg-gold-500 text-brand-900 text-xs font-bold">مشاركة</button>
+  <!-- Main -->
+  <main class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid lg:grid-cols-5 gap-6 items-start">
+
+      <!-- Input -->
+      <section class="lg:col-span-3 bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 class="font-extrabold text-brand-900">١ — محتوى المحاضرة</h3>
+          <span id="char-count" class="text-xs font-bold text-slate-500">0 حرف</span>
         </div>
-        <div id="gen-link-wrap" class="hidden mt-3 p-3 bg-gold-50 rounded-xl border border-gold-200">
-          <p class="text-[11px] font-bold text-brand-900">رابط مباشر (أسهل — يضغط الأستاذ ويدخل فورًا بدون كتابة):</p>
-          <div class="mt-1 flex items-center gap-2">
-            <a id="gen-link" href="#" target="_blank" class="flex-1 text-xs font-mono text-brand-700 break-all underline"></a>
-            <button id="btn-copy-link" class="px-3 py-1.5 rounded-lg bg-brand-900 text-white text-xs font-bold shrink-0">نسخ الرابط</button>
+        <div class="p-6 space-y-4">
+          <div class="grid sm:grid-cols-2 gap-3">
+            <label class="space-y-1">
+              <span class="text-xs font-bold text-slate-600">عنوان المحاضرة (اختياري)</span>
+              <input id="lecture-title" type="text" maxlength="120" placeholder="مثال: نموذج SAMR في تدريس اللغة" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-bold text-slate-600">لغة النتائج</span>
+              <select id="output-lang" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm bg-white">
+                <option value="ar" selected>العربية</option>
+                <option value="en">English</option>
+                <option value="bilingual">ثنائي اللغة</option>
+              </select>
+            </label>
           </div>
-        </div>
-        <p class="text-[11px] text-slate-400 mt-2">أرسل هذا الرمز أو الرابط للأستاذ — به يسجل دخوله ويكمل ملفه (الاسم، الصفة، المواد، السنوات) وتُفتح صفحته الخاصة.</p>
-      </div>
-      <div class="mt-6">
-        <h4 class="font-extrabold text-brand-900 text-sm">الأساتذة المضافون</h4>
-        <div id="teachers-list" class="mt-3 grid sm:grid-cols-2 gap-3"></div>
-      </div>
-      <div class="mt-6">
-        <h4 class="font-extrabold text-brand-900 text-sm">الأكواد المولّدة</h4>
-        <div id="invites-list" class="mt-3 space-y-2"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- ======================= SUPABASE SETUP NOTICE ======================= -->
-  <div id="setup-notice" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-    <div class="rounded-2xl border-2 border-dashed border-gold-500 bg-gold-100/70 p-4 flex items-start gap-3">
-      <div class="text-gold-700">⚠️</div>
-      <div>
-        <p class="font-extrabold text-gold-700">قاعدة البيانات غير مهيأة بعد (Supabase)</p>
-        <p class="text-sm text-slate-700 mt-1">شغّل <code>supabase/upgrade_private.sql</code> في SQL Editor لتفعيل النظام الخاص.</p>
-      </div>
-    </div>
-  </div>
+          <label class="space-y-1 block">
+            <span class="text-xs font-bold text-slate-600">نص المحاضرة</span>
+            <textarea id="lecture-text" rows="12" placeholder="الصقي هنا نص المحاضرة كاملاً — كلما كان النص أوضح، كانت النتائج أدق. الحد الأدنى 40 حرفاً." class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-sm leading-7 min-h-[220px]"></textarea>
+          </label>
 
-  <!-- ======================= MAIN ======================= -->
-  <main id="main-content" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <div class="grid lg:grid-cols-3 gap-8">
-
-      <!-- INPUT CARD -->
-      <section id="input-section" class="lg:col-span-2 scroll-mt-24">
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden">
-          <div class="bg-gradient-to-l from-brand-800 to-brand-700 text-white px-6 sm:px-8 py-5">
-            <h3 class="text-xl font-extrabold flex items-center gap-2.5">
-              <span class="w-9 h-9 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold">1</span>
-              <span data-i18n="step1_title">أدخل محتوى المحاضرة</span>
-            </h3>
-            <p class="text-brand-100 text-sm mt-1" data-i18n="step1_sub">الصق النص أو ارفع ملفًا (TXT, Word, PDF)</p>
+          <div class="flex flex-wrap gap-2">
+            <button id="btn-sample" type="button" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-sm font-bold">مثال جاهز</button>
+            <button id="btn-clear" type="button" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-sm font-bold">مسح</button>
+            <div class="ms-auto flex gap-2 w-full sm:w-auto">
+              <button id="btn-generate" type="button" class="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-brand-800 hover:bg-brand-900 text-white font-extrabold shadow active:scale-[0.98] transition">⚡ توليد المحتوى التعليمي</button>
+            </div>
           </div>
-          <div class="p-6 sm:p-8 space-y-5">
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_course">المادة / المقرر</label>
-                <select id="course-select" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 bg-white text-slate-800 transition">
-                  <option value="" data-i18n="opt_no_course">— بدون مادة (عام) —</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_title">عنوان المحاضرة</label>
-                <input id="lecture-title" type="text" maxlength="200" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 transition" data-i18n-placeholder="ph_title" placeholder="مثال: نموذج SAMR" />
-              </div>
-            </div>
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_date">تاريخ المحاضرة</label>
-                <input id="lecture-date" type="date" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 transition" />
-              </div>
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_time">وقت المحاضرة</label>
-                <input id="lecture-time" type="time" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 transition" />
-              </div>
-            </div>
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-sm font-bold text-slate-700" data-i18n="label_text">محتوى المحاضرة</label>
-                <span class="text-xs text-slate-400"><span id="char-count">0</span> <span data-i18n="chars_word">حرف</span></span>
-              </div>
-              <textarea id="lecture-text" rows="8" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-slate-800 leading-relaxed transition resize-y" data-i18n-placeholder="ph_text" placeholder="الصق هنا نص المحاضرة..."></textarea>
-            </div>
-            <div id="drop-zone" class="drop-zone border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:border-brand-500 hover:bg-brand-50 transition cursor-pointer">
-              <input id="file-input" type="file" class="hidden" accept=".txt,.md,.docx,.doc,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-              <p class="text-sm font-bold text-slate-600" data-i18n="drop_title">اسحب ملفًا هنا أو اضغط للاختيار</p>
-              <p class="text-xs text-slate-400 mt-1" data-i18n="drop_hint">TXT, Word (.docx), PDF — حتى 80 ألف حرف</p>
-              <p id="file-name" class="text-xs font-bold text-brand-700 mt-2 hidden"></p>
-              <p id="file-status" class="text-xs text-slate-400 mt-1 hidden"></p>
-            </div>
-            <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1.5" data-i18n="label_output_lang">لغة النتائج</label>
-                <select id="output-language" class="w-full rounded-2xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 bg-white text-slate-800 transition">
-                  <option value="ar" data-i18n="opt_ar">العربية</option>
-                  <option value="en" data-i18n="opt_en">الإنجليزية</option>
-                  <option value="bilingual" data-i18n="opt_bilingual">ثنائي اللغة</option>
-                </select>
-              </div>
-              <div class="flex items-end gap-2">
-                <button id="btn-sample" class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-brand-50 text-brand-800 border-2 border-brand-100 font-bold hover:bg-brand-100 transition text-sm">
-                  <span data-i18n="btn_sample">مثال جاهز</span>
-                </button>
-                <button id="btn-clear" class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-50 text-slate-600 border-2 border-slate-200 font-bold hover:bg-slate-100 transition text-sm">
-                  <span data-i18n="btn_clear">مسح</span>
-                </button>
-              </div>
-            </div>
-            <button id="btn-generate" class="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-brand-800 text-white text-lg font-extrabold shadow-lg hover:bg-brand-900 transition">
-              <span data-i18n="btn_generate">توليد المحتوى التعليمي</span>
-            </button>
-            <p class="text-xs text-slate-400 text-center -mt-2" data-i18n="generate_note">بواسطة Google Gemini — المفتاح محمي على الخادم.</p>
-          </div>
+          <p class="text-[11px] text-slate-500">المفتاح محمي على الخادم عبر <code>process.env.GEMINI_API_KEY</code> — لا يظهر أبداً في المتصفح.</p>
         </div>
       </section>
 
-      <!-- SIDEBAR -->
-      <aside id="sidebar" class="space-y-6">
-        <div id="course-section" class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden scroll-mt-28">
-          <div class="bg-gradient-to-l from-gold-500 to-gold-600 text-brand-900 px-6 py-4 flex items-center justify-between">
-            <h3 class="text-base font-extrabold flex items-center gap-2" data-i18n="courses_title">المواد / المقررات</h3>
-            <span id="courses-count" class="px-2.5 py-0.5 rounded-full bg-brand-900 text-gold-500 text-xs font-bold">0</span>
-          </div>
-          <div class="p-4 space-y-4">
-            <div id="courses-list" class="space-y-2 max-h-[300px] overflow-y-auto"></div>
-            <form id="course-form" class="space-y-2 border-t-2 border-slate-100 pt-4">
-              <input id="course-title" type="text" maxlength="120" required class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" data-i18n-placeholder="ph_course_title" placeholder="مثال: Employing Technology in ELT" />
-              <input id="course-desc" type="text" maxlength="200" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" data-i18n-placeholder="ph_course_desc" placeholder="وصف مختصر (اختياري)" />
-              <button type="submit" class="w-full px-4 py-2.5 rounded-xl bg-brand-800 text-white text-sm font-bold hover:bg-brand-900 transition" data-i18n="btn_add_course">إضافة مادة</button>
-            </form>
-          </div>
+      <!-- Side tips -->
+      <section class="lg:col-span-2 space-y-4">
+        <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6">
+          <h4 class="font-extrabold text-brand-900">ماذا ينتج لك؟</h4>
+          <ul class="mt-3 space-y-2 text-sm text-slate-700">
+            <li>✓ ملخص تربوي يربط بالنظريات (SAMR, TPACK...)</li>
+            <li>✓ مفاهيم جوهرية بتعريفات جاهزة للامتحان</li>
+            <li>✓ تطبيقات عملية للصف الليبي</li>
+            <li>✓ سيناريوهات بأسئلة + نماذج إجابة</li>
+            <li>✓ مهام تأمل ونقاش</li>
+          </ul>
         </div>
-        <div class="bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden">
-          <div class="bg-brand-800 text-white px-6 py-5 flex items-center justify-between">
-            <h3 class="text-base font-extrabold flex items-center gap-2" data-i18n="sidebar_title">المحاضرات المحفوظة</h3>
-            <span id="saved-count" class="px-2.5 py-0.5 rounded-full bg-white/15 text-xs font-bold">0</span>
-          </div>
-          <div id="saved-list" class="p-4 space-y-3 max-h-[350px] overflow-y-auto"></div>
+        <div class="bg-gold-100 border-2 border-gold-500/30 rounded-2xl p-4 text-sm">
+          <p class="font-extrabold text-brand-900">نشر على Vercel:</p>
+          <ol class="list-decimal ms-5 mt-2 space-y-1 text-slate-700">
+            <li>ارفعي المشروع إلى GitHub</li>
+            <li>Vercel → Add New Project → Import</li>
+            <li>Settings → Environment Variables → أضيفي <code>GEMINI_API_KEY</code></li>
+            <li>Deploy — جاهز</li>
+          </ol>
         </div>
-      </aside>
+      </section>
     </div>
 
-    <!-- CLASSROOM -->
-    <section id="classroom-section" class="mt-10 scroll-mt-28">
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h3 class="text-xl font-extrabold text-brand-900 flex items-center gap-2.5">
-          <span class="w-8 h-8 rounded-xl bg-gold-500 text-brand-900 flex items-center justify-center font-extrabold text-sm">★</span>
-          <span data-i18n="classroom_title">إدارة الصف</span>
-        </h3>
-        <p class="text-xs text-slate-500" data-i18n="classroom_sub">حسب سنواتك — كل محاضرة بمكانها.</p>
-      </div>
-      <div class="flex flex-wrap gap-2 mb-4 no-print">
-        <button data-ctab="attendance" class="classroom-tab-btn tab-active px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_attendance">الحضور والغياب</button>
-        <button data-ctab="grades" class="classroom-tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_grades">الدرجات</button>
-      </div>
-      <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6">
-        <div id="classroom-attendance">
-          <h4 class="font-extrabold text-brand-900 flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-gold-500"></span><span data-i18n="attendance_title">سجل الحضور</span></h4>
-          <div id="attendance-body"></div>
-        </div>
-        <div id="classroom-grades" class="hidden">
-          <h4 class="font-extrabold text-brand-900 flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-gold-500"></span><span data-i18n="grades_title">سجل الدرجات</span></h4>
-          <div id="grades-body"></div>
+    <!-- Results -->
+    <section id="results" class="hidden mt-8 bg-white rounded-3xl shadow-card border border-brand-100 overflow-hidden">
+      <div class="px-6 py-4 bg-brand-50 border-b border-brand-100 flex flex-wrap items-center justify-between gap-3">
+        <h3 class="font-extrabold text-brand-900">٢ — النتائج التفاعلية</h3>
+        <div class="flex gap-2">
+          <button id="btn-copy-all" class="px-4 py-2 rounded-xl bg-brand-800 text-white text-xs font-bold">نسخ الكل</button>
+          <button id="btn-print" class="px-4 py-2 rounded-xl bg-white border-2 border-slate-200 text-xs font-bold">طباعة</button>
         </div>
       </div>
-    </section>
-
-    <!-- RESULTS -->
-    <section id="results-section" class="hidden mt-10 scroll-mt-28">
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h3 class="text-xl font-extrabold text-brand-900 flex items-center gap-2.5">
-          <span class="w-8 h-8 rounded-xl bg-brand-800 text-gold-500 flex items-center justify-center font-extrabold">2</span>
-          <span data-i18n="results_title">النتائج التفاعلية</span>
-        </h3>
-        <div class="flex items-center gap-2 no-print">
-          <button id="btn-copy-all" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border-2 border-brand-100 text-brand-800 font-bold text-sm hover:bg-brand-50 transition" data-i18n="btn_copy_all">نسخ الكل</button>
-          <button id="btn-print-2" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-800 text-white font-bold text-sm hover:bg-brand-900 transition" data-i18n="btn_print">طباعة</button>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-2 mb-4 no-print" role="tablist">
-        <button data-tab="summary" class="tab-btn tab-active px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_summary">الملخص والمفاهيم</button>
-        <button data-tab="takeaways" class="tab-btn px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_takeaways">الخلاصات والتطبيقات</button>
-        <button data-tab="scenarios" class="tab-btn px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_scenarios">السيناريوهات</button>
-        <button data-tab="reflections" class="tab-btn px-4 py-2 rounded-2xl font-bold text-sm bg-white border-2 border-brand-100 text-brand-800 transition" data-i18n="tab_reflections">مهام التأمل</button>
-      </div>
-      <div class="bg-white rounded-3xl shadow-card border border-brand-100 p-6 sm:p-8">
-        <div id="panel-summary" class="tab-panel fade-in">
-          <div class="flex items-start justify-between gap-3 mb-3"><h4 class="text-lg font-extrabold text-brand-900" data-i18n="summary_title">الملخص التربوي</h4><button class="btn-copy no-print" data-copy-target="summary-text"><span class="px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 text-xs font-bold" data-i18n="btn_copy">نسخ</span></button></div>
-          <p id="summary-text" class="leading-loose text-slate-700 text-[15px]"></p>
-          <h4 class="text-lg font-extrabold text-brand-900 flex items-center gap-2 mt-8 mb-3" data-i18n="concepts_title">المفاهيم الجوهرية</h4>
-          <div id="concepts-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        </div>
-        <div id="panel-takeaways" class="tab-panel hidden fade-in">
-          <h4 class="text-lg font-extrabold text-brand-900 mb-3" data-i18n="takeaways_title">الخلاصات الرئيسية</h4><ul id="takeaways-list" class="space-y-3"></ul>
-          <h4 class="text-lg font-extrabold text-brand-900 mt-8 mb-3" data-i18n="applications_title">تطبيقات للصفوف الليبية</h4><div id="applications-list" class="grid sm:grid-cols-2 gap-4"></div>
-        </div>
-        <div id="panel-scenarios" class="tab-panel hidden fade-in">
-          <h4 class="text-lg font-extrabold text-brand-900 mb-1" data-i18n="scenarios_title">سيناريوهات وأسئلة</h4><div id="scenarios-list" class="space-y-4 mt-4"></div>
-        </div>
-        <div id="panel-reflections" class="tab-panel hidden fade-in">
-          <h4 class="text-lg font-extrabold text-brand-900 mb-1" data-i18n="reflections_title">مهام التأمل الطلابية</h4><div id="reflections-list" class="space-y-6 mt-4"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- FEATURES — compact collapsible -->
-    <section id="features-section" class="mt-10 scroll-mt-24">
-      <details class="bg-white rounded-3xl shadow-card border border-brand-100 p-6">
-        <summary class="flex items-center justify-between cursor-pointer">
-          <h3 class="text-base font-extrabold text-brand-900" data-i18n="features_title">ماذا يُنتج المساعد لك؟</h3>
-          <span class="chevron text-brand-700 text-xl">▾</span>
-        </summary>
-        <div class="grid sm:grid-cols-4 gap-4 mt-6 text-sm">
-          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat1_title">ملخصات ومفاهيم</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat1_text">ملخص دقيق مع SAMR، TPACK...</p></div>
-          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat2_title">خلاصات ليبية</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat2_text">تطبيقات للصفوف الليبية</p></div>
-          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat3_title">سيناريوهات</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat3_text">أسئلة بنماذج إجابة</p></div>
-          <div class="p-4 rounded-2xl bg-brand-50 border border-brand-100"><p class="font-extrabold text-brand-900" data-i18n="feat4_title">تأمل</p><p class="text-slate-600 mt-1 text-xs" data-i18n="feat4_text">مهام تأمل تفاعلية</p></div>
-        </div>
-      </details>
+      <div id="results-body" class="p-6 space-y-8"></div>
     </section>
   </main>
 
-  <!-- ======================= GLOBAL LOGOUT — single big button for both admin & teacher ======================= -->
-  <section id="global-logout-section" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-    <div class="bg-gradient-to-l from-brand-900 to-brand-800 rounded-3xl p-6 shadow-card text-center">
-      <p class="text-sm font-bold text-white/90 mb-4">انتهيت؟ يمكنك الخروج من حسابك بأمان هنا — يعمل للمشرفة وللأستاذ</p>
-      <button id="btn-global-logout" type="button" onclick="try{ if(window._doGlobalLogout) return window._doGlobalLogout(event); }catch(e){} try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e2){ location.reload(); }" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-brand-900 text-base font-extrabold shadow-lg hover:bg-gold-50 active:scale-[0.98] transition flex items-center justify-center gap-2 mx-auto">
-        <span class="text-xl">🚪</span>
-        <span>خروج — تسجيل خروج</span>
-      </button>
-      <a href="?logout=1" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="inline-block mt-3 text-xs text-white/80 underline hover:text-white">إذا لم يستجب الزر اضغط هنا للخروج الآمن (يعمل بدون جافاسكربت)</a>
-      <p class="text-[11px] text-white/60 mt-2">سيتم مسح الجلسة والعودة لشاشة الدخول</p>
-    </div>
-  </section>
-
-  <footer class="bg-brand-900 text-brand-100 mt-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="grid sm:grid-cols-3 gap-6 text-sm">
-        <div>
-          <p class="font-extrabold text-white">SABRATHA ELT Tech-Assistant</p>
-          <p class="text-xs mt-2" data-i18n="footer_about">تطبيق تعليمي خاص — كلية الآداب والتربية، جامعة صبراتة.</p>
-        </div>
-        <div>
-          <h4 class="font-extrabold text-white mb-2" data-i18n="footer_course">المقررات</h4>
-          <p id="footer-mycourses" class="text-xs text-brand-100/80"></p>
-        </div>
-        <div>
-          <h4 class="font-extrabold text-white mb-2">التقنيات</h4>
-          <p class="text-xs">Vercel · Gemini API · Supabase</p>
-        </div>
-      </div>
-      <div class="border-t border-white/10 mt-6 pt-4 text-center">
-        <p class="text-sm font-bold text-white" data-i18n="footer_credit">إعداد وإشراف: الأستاذة إيناس مصباح عمر — Enas Mesbah Omar</p>
-        <p class="text-xs mt-1 text-brand-100/70" data-i18n="footer_rights">© 2026 جامعة صبراتة — كلية الآداب والتربية — قسم اللغة الإنجليزية.</p>
-      </div>
+  <footer class="bg-brand-900 text-brand-100 mt-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
+      <p class="text-sm font-bold text-white">إعداد وإشراف: الأستاذة إيناس مصباح عمر — Enas Mesbah Omar</p>
+      <p class="text-xs mt-1 text-brand-100/70">© 2026 جامعة صبراتة — كلية الآداب والتربية — قسم اللغة الإنجليزية</p>
     </div>
   </footer>
 
-  <div id="loading-overlay" class="hidden fixed inset-0 z-50 bg-brand-900/70 backdrop-blur-sm flex items-center justify-center">
-    <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center">
-      <div class="relative w-20 h-20 mx-auto"><div class="absolute inset-0 rounded-full border-4 border-brand-100"></div><div class="absolute inset-0 rounded-full border-4 border-brand-800 border-t-transparent animate-spin"></div><div class="absolute inset-0 flex items-center justify-center text-2xl">✍️</div></div>
-      <h4 class="mt-6 text-lg font-extrabold text-brand-900" data-i18n="loading_title">جارٍ توليد المحتوى...</h4>
-      <p id="file-loading-text" class="hidden mt-3 text-xs font-bold text-brand-700"></p>
+  <!-- Overlays -->
+  <div id="loading" class="hidden fixed inset-0 z-50 bg-brand-900/70 backdrop-blur-sm grid place-items-center p-4">
+    <div class="bg-white rounded-3xl p-8 text-center shadow-2xl max-w-sm w-full">
+      <div class="w-12 h-12 mx-auto rounded-full border-4 border-brand-100 border-t-brand-800 animate-spin"></div>
+      <p class="mt-4 font-extrabold text-brand-900">جارٍ توليد المحتوى...</p>
+      <p class="text-xs text-slate-500 mt-1">قد يستغرق 10–30 ثانية حسب طول النص</p>
     </div>
   </div>
-  <div id="toast-container" class="fixed bottom-6 inset-x-0 z-[60] flex flex-col items-center gap-2 px-4 pointer-events-none"></div>
-  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.2/mammoth.browser.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script type="module" src="app.js"></script>
-  <script>
-  // Auto-login via ?code=ELT-XXXX (shareable link) — works without Supabase
-  (function(){
-    try{
-      var href=window.location.href||''; var search=window.location.search||'';
-      var m=null;
-      try{ m=href.match(/[?&#]code=([^&#]+)/i); if(!m) m=search.match(/[?&#]code=([^&#]+)/i); }catch(e){}
-      if(m){
-        var codeRaw=decodeURIComponent(m[1]||'').replace(/^\s+|\s+$/g,'').toUpperCase();
-        if(codeRaw && codeRaw.indexOf('ELT-')===0){
-          var KEY='sabratha_session_v2'; var INV_KEY='sabratha_invites_local'; var PROF_KEY='sabratha_profiles_local';
-          // try find invite to get name
-          var forName=codeRaw; try{ var invRaw=null; try{ invRaw=localStorage.getItem(INV_KEY); }catch(e){ try{ invRaw=sessionStorage.getItem(INV_KEY); }catch(e2){} } var invs=invRaw?JSON.parse(invRaw):[]; for(var i=0;i<invs.length;i++){ if((invs[i].code||'').toUpperCase()===codeRaw){ forName=invs[i].for_name||invs[i].forName||forName; break; } } }catch(e){}
-          // check existing profile
-          var prof=null; try{ var pRaw=null; try{ pRaw=localStorage.getItem(PROF_KEY); }catch(e){} var profs=pRaw?JSON.parse(pRaw):[]; for(var j=0;j<profs.length;j++){ if((profs[j].code||'').toUpperCase()===codeRaw){ prof=profs[j]; break; } } }catch(e){}
-          if(!prof){
-            prof={id:'local-'+Date.now(), code:codeRaw, role:'teacher', full_name:forName, fullName:forName, title:'', subjects:'', academic_year:'', academicYear:'', created_at:new Date().toISOString()};
-            try{ var all=[]; try{ var v=localStorage.getItem(PROF_KEY); all=v?JSON.parse(v):[]; }catch(e){} all.push(prof); try{ localStorage.setItem(PROF_KEY, JSON.stringify(all)); }catch(e){ try{ sessionStorage.setItem(PROF_KEY, JSON.stringify(all)); }catch(e2){} } }catch(e){}
-          }
-          // save session
-          try{ localStorage.setItem(KEY, JSON.stringify(prof)); }catch(e){ try{ sessionStorage.setItem(KEY, JSON.stringify(prof)); }catch(e2){ try{ document.cookie=KEY+'='+encodeURIComponent(JSON.stringify(prof))+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e3){} } }
-          try{ window._fallbackSession=prof; }catch(e){}
-          // hide overlay
-          var goHide=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.style.display='none'; ov.classList.add('hidden'); } var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
-          if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', goHide); else goHide();
-        } else if(codeRaw==='ENAS-SUPERVISOR'){
-          var ADMIN2={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',created_at:new Date().toISOString()};
-          try{ localStorage.setItem('sabratha_session_v2', JSON.stringify(ADMIN2)); }catch(e){ try{ sessionStorage.setItem('sabratha_session_v2', JSON.stringify(ADMIN2)); }catch(e2){} }
-          try{ window._fallbackSession=ADMIN2; }catch(e){}
-        }
+  <div id="toasts" class="fixed bottom-4 inset-x-0 z-50 grid place-items-center gap-2 px-4 pointer-events-none"></div>
+
+  <script type="module">
+    const $ = (s)=>document.getElementById(s);
+    const toast = (msg, type='info')=>{
+      const c = $('toasts');
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow text-sm font-bold ${type==='error'?'bg-red-600 text-white':type==='success'?'bg-brand-800 text-white':'bg-slate-800 text-white'}`;
+      el.textContent = msg;
+      c.appendChild(el);
+      setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .4s'; setTimeout(()=>el.remove(),400)}, 3200);
+    };
+    const loading = (show)=> $('loading').classList.toggle('hidden', !show);
+    const updateCount = ()=> $('char-count').textContent = `${$('lecture-text').value.length.toLocaleString('ar-EG')} حرف`;
+    $('lecture-text').addEventListener('input', updateCount);
+
+    const SAMPLE_AR = `عنوان المحاضرة: نموذج SAMR وتوظيف التكنولوجيا في تدريس اللغة الإنجليزية\n\nيُعد نموذج SAMR (الاستبدال، التعزيز، التعديل، إعادة التعريف) الذي طوره روبن بونتيدور من أبرز النماذج لتقييم توظيف التكنولوجيا. الاستبدال: تحل التقنية محل الأداة دون تغيير جوهري. التعزيز: تضيف تحسينات بسيطة. التعديل: إعادة تصميم المهام. إعادة التعريف: إنشاء مهام كانت مستحيلة سابقاً. أما TPACK فيؤكد تكامل المعرفة بالمحتوى والتربوية والتكنولوجية. التعلم المدمج يجمع بين الحضوري والإلكتروني عبر Moodle أو Google Classroom. نظرية ماير للتعلّم متعدد الوسائط تؤكد أن دمج النص والصورة والفيديو بتوازن يعمّق الفهم.`;
+
+    $('btn-sample').addEventListener('click', ()=>{ $('lecture-title').value='نموذج SAMR وتوظيف التكنولوجيا'; $('lecture-text').value=SAMPLE_AR; updateCount(); });
+    $('btn-clear').addEventListener('click', ()=>{ $('lecture-title').value=''; $('lecture-text').value=''; updateCount(); $('results').classList.add('hidden'); });
+
+    // Helpers to render
+    const esc = (s)=> String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    function copyText(t){ return navigator.clipboard.writeText(t).then(()=>toast('تم النسخ','success')).catch(()=>toast('فشل النسخ','error')); }
+
+    function renderResults(data){
+      const root = $('results-body');
+      root.innerHTML = '';
+
+      const addSection = (title, html)=>{
+        const sec = document.createElement('section');
+        sec.className = 'space-y-3';
+        sec.innerHTML = `<h4 class="font-extrabold text-brand-900 border-s-4 border-gold-500 ps-3">${esc(title)}</h4>${html}`;
+        root.appendChild(sec);
+      };
+
+      // Summary
+      addSection('الملخص التربوي', `<p class="text-sm leading-7 bg-brand-50 border border-brand-100 rounded-2xl p-4">${esc(data.summary).replace(/\\n/g,'<br>')}</p>`);
+
+      // Core concepts
+      if (data.core_concepts?.length){
+        addSection('المفاهيم الجوهرية', `<div class="grid sm:grid-cols-2 gap-3">${data.core_concepts.map(c=>`
+          <div class="rounded-2xl border-2 border-slate-100 p-4 bg-white">
+            <p class="font-extrabold text-brand-900 text-sm">${esc(c.term)}</p>
+            <p class="text-sm mt-1">${esc(c.definition)}</p>
+            <p class="text-xs mt-2 text-brand-700 bg-brand-50 border border-brand-100 rounded-xl p-2">🎯 تطبيق صفي: ${esc(c.classroom_link)}</p>
+          </div>`).join('')}</div>`);
       }
-    }catch(e){}
-  })();
-  </script>
-  <script>
-// === EMERGENCY generate-code fallback: works even if app.js fails to load ===
-// ES5 only, no optional chaining — guarantees button responds instantly
-(function(){
-  var KEY_INV='sabratha_invites_local';
-  function gEl(id){ return document.getElementById(id); }
-  function genCode(){ return 'ELT-'+Math.random().toString(36).slice(2,6).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase(); }
-  function showToast(msg,bg){
-    try{
-      var c=gEl('toast-container'); if(!c) return;
-      var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm';
-      d.style.background=bg||'#0F4C5C'; d.style.color='#fff'; d.textContent=msg;
-      c.appendChild(d); setTimeout(function(){ try{ d.style.opacity='0'; d.style.transition='opacity .4s'; setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },400);}catch(e){ if(d.parentNode) d.parentNode.removeChild(d);} },3500);
-    }catch(e){}
-  }
-  function emergencyGen(ev){
-    try{
-      if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} }
-      // dedupe: if app.js already handled within 800ms, skip
-      try{ if(window._lastGeneratedAt && (Date.now()-window._lastGeneratedAt < 800)) return false; }catch(e){}
-      var input=gEl('new-teacher-name');
-      var name=input ? (input.value||'').replace(/^\s+|\s+$/g,'') : '';
-      if(!name){ showToast('أدخل اسم الأستاذ أولاً','#dc2626'); try{ if(input) input.focus(); }catch(e){} return false; }
-      var code=genCode();
-      // Try auth.generateCode if available
-      try{ if(window.auth && window.auth.generateCode) code=window.auth.generateCode('ELT'); }catch(e){}
-      var forName=gEl('gen-for-name'); var codeEl=gEl('gen-code'); var box=gEl('generated-code-box');
-      if(forName) forName.textContent=name;
-      if(codeEl) { codeEl.textContent=code; codeEl.style.display=''; }
-      if(box){ box.classList.remove('hidden'); box.style.display='block'; box.removeAttribute('hidden'); }
-      try{ var __le=document.getElementById('gen-link'); var __wr=document.getElementById('gen-link-wrap'); if(__le && __wr){ var __lnk=location.origin+location.pathname+'?code='+encodeURIComponent(code); __le.textContent=__lnk; __le.href=__lnk; __wr.classList.remove('hidden'); __wr.style.display='block'; } }catch(e){}
-      if(input) input.value='';
-      showToast('تم توليد الرمز — انسخه وأرسله للأستاذ');
-      try{ window._lastGeneratedCode=code; window._lastGeneratedAt=Date.now(); }catch(e){}
-      setTimeout(function(){ try{ if(box) box.scrollIntoView({behavior:'smooth', block:'center'});}catch(e){} },100);
-      // persist locally + prepend list
-      try{
-        var list=gEl('invites-list'); if(list){
-          if(list.textContent.replace(/\s/g,'')==='—' || list.textContent.trim()==='—') list.innerHTML='';
-          var already=false; try{ already = list.textContent.indexOf(code)!==-1; }catch(e){}
-          if(!already){
-            var row=document.createElement('div'); row.className='flex items-center gap-3 bg-white rounded-xl p-3 border-2 border-brand-900/10 text-sm';
-            var s1=document.createElement('span'); s1.className='font-mono font-bold text-brand-900'; s1.textContent=code;
-            var s2=document.createElement('span'); s2.className='flex-1 text-slate-600 text-xs'; s2.textContent=name+' — غير مستخدم';
-            var b=document.createElement('button'); b.className='px-3 py-1 rounded-lg bg-brand-800 text-white text-xs font-bold'; b.textContent='نسخ';
-            b.onclick=function(){ try{ navigator.clipboard.writeText(code); showToast('تم النسخ'); }catch(e){ var ta=document.createElement('textarea'); ta.value=code; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('تم النسخ'); }catch(e2){} ta.remove(); } };
-            row.appendChild(s1); row.appendChild(s2); row.appendChild(b); list.insertBefore(row, list.firstChild);
-          }
-        }
-        // save to localStorage for persistence
-        var arr=[]; try{ var v=localStorage.getItem(KEY_INV); arr=v?JSON.parse(v):[]; }catch(e){ try{ var v2=sessionStorage.getItem(KEY_INV); arr=v2?JSON.parse(v2):[]; }catch(e2){} }
-        arr.unshift({code:code, for_name:name, role:'teacher', used:false, created_at:new Date().toISOString()});
-        try{ localStorage.setItem(KEY_INV, JSON.stringify(arr)); }catch(e){ try{ sessionStorage.setItem(KEY_INV, JSON.stringify(arr)); }catch(e2){ try{ document.cookie=KEY_INV+'='+encodeURIComponent(JSON.stringify(arr))+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e3){} } }
-        // also try auth.createInvite if module loaded
-        try{ if(window.auth && window.auth.createInvite){ var p=null; try{ p=window.auth.getCurrentProfile(); }catch(e){} window.auth.createInvite({forName:name, createdBy:p?p.id:null}).then(function(s){ if(s&&s.code&&codeEl){ codeEl.textContent=s.code; try{ var __le2=document.getElementById('gen-link'); if(__le2){ var __ln2=location.origin+location.pathname+'?code='+encodeURIComponent(s.code); __le2.textContent=__ln2; __le2.href=__ln2; } }catch(e){} } }).catch(function(){}); } }catch(e){}
-      }catch(e){}
-    }catch(err){ try{ showToast('خطأ: '+(err.message||err),'#dc2626'); }catch(e){} console.error(err); }
-    return false;
-  }
-  window._fallbackGenCode = emergencyGen;
-  function bindEmergency(){
-    var f=gEl('generate-code-form'); if(!f || f._emergencyBound) return; f._emergencyBound=true;
-    f.addEventListener('submit', emergencyGen);
-    var btn=gEl('btn-generate-code'); if(btn) btn.addEventListener('click', emergencyGen);
-    var cpl=gEl('btn-copy-link'); if(cpl && !cpl._b){ cpl._b=true; cpl.addEventListener('click', function(){ var le=gEl('gen-link'); var t=le? le.textContent : ''; if(!t){ var ce=gEl('gen-code'); if(ce) t=location.origin+location.pathname+'?code='+encodeURIComponent(ce.textContent); } if(t){ try{ navigator.clipboard.writeText(t); showToast('تم نسخ الرابط'); }catch(e){ var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('تم نسخ الرابط'); }catch(e2){} ta.remove(); } } }); }
-    // also delegate in case button type changes
-    f.addEventListener('click', function(ev){
-      var t=ev.target; if(t && t.closest){ var b=t.closest('button'); if(b && f.contains(b)) { /* click handler will fire */ } }
+      // Takeaways
+      if (data.key_takeaways?.length){
+        addSection('الخلاصات الأساسية', `<ul class="list-disc ms-5 space-y-1 text-sm">${data.key_takeaways.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`);
+      }
+      // Libyan apps
+      if (data.libyan_applications?.length){
+        addSection('تطبيقات للصفوف الليبية', `<ul class="space-y-2">${data.libyan_applications.map(a=>`<li class="flex gap-2 text-sm"><span class="text-gold-500">•</span><span>${esc(a)}</span></li>`).join('')}</ul>`);
+      }
+      // Scenario Q&A
+      if (data.scenario_qa?.length){
+        addSection('سيناريوهات وأسئلة بنماذج إجابة', `<div class="space-y-4">${data.scenario_qa.map((q,i)=>`
+          <details class="rounded-2xl border-2 border-slate-100 overflow-hidden open:shadow-sm">
+            <summary class="px-4 py-3 bg-slate-50 font-bold text-sm cursor-pointer">${i+1}. ${esc(q.question)}</summary>
+            <div class="px-4 py-3 text-sm leading-7 bg-white">${esc(q.model_answer).replace(/\\n/g,'<br>')}</div>
+          </details>`).join('')}</div>`);
+      }
+      // Reflection
+      if (data.reflection_tasks?.length){
+        addSection('مهام التأمل', `<div class="grid gap-3">${data.reflection_tasks.map(r=>`
+          <div class="rounded-2xl border-2 border-slate-100 p-4">
+            <p class="font-bold text-sm text-brand-900">${esc(r.title)} <span class="text-xs font-normal text-slate-500">(${esc(r.type)})</span></p>
+            <p class="text-sm mt-1 leading-6">${esc(r.prompt)}</p>
+          </div>`).join('')}</div>`);
+      }
+      // Discussion
+      if (data.discussion_questions?.length){
+        addSection('أسئلة نقاش', `<ol class="list-decimal ms-5 space-y-1 text-sm">${data.discussion_questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ol>`);
+      }
+
+      $('results').classList.remove('hidden');
+      $('results').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    $('btn-copy-all').addEventListener('click', ()=>{
+      const text = document.getElementById('results-body').innerText || '';
+      if(!text.trim()) return toast('لا يوجد محتوى للنسخ','error');
+      copyText(text);
     });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindEmergency); else bindEmergency();
-  setTimeout(bindEmergency, 400);
-  setTimeout(bindEmergency, 1200);
-})();
+    $('btn-print').addEventListener('click', ()=> window.print());
+
+    $('btn-generate').addEventListener('click', async ()=>{
+      const title = $('lecture-title').value.trim();
+      const text = $('lecture-text').value.trim();
+      const outputLanguage = $('output-lang').value;
+      if(text.length < 40) return toast('نص المحاضرة قصير جداً — الحد الأدنى 40 حرفاً','error');
+      if(text.length > 80000) return toast('النص طويل جداً — الحد الأقصى 80 ألف حرف','error');
+      loading(true);
+      try{
+        const res = await fetch('/api/generate', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ title, text, outputLanguage })
+        });
+        const json = await res.json().catch(()=>({}));
+        if(!res.ok || !json.success){
+          const msg = json?.error?.message || json?.message || `خطأ ${res.status}`;
+          throw new Error(msg);
+        }
+        renderResults(json.data);
+        toast('تم توليد المحتوى بنجاح','success');
+      }catch(e){
+        console.error(e);
+        toast(e.message || 'حدث خطأ غير متوقع','error');
+      }finally{
+        loading(false);
+      }
+    });
+
+    // init
+    updateCount();
   </script>
-  <script>
-// Emergency fallback — ES5 only, no ?. — Samsung compatible
-(function(){
-  var FALLBACK_ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',academicYear:'جميع السنوات',created_at:new Date().toISOString()};
-  var KEY='sabratha_session_v2';
-  function getEl(id){ return document.getElementById(id); }
-  function getVal(el){ if(!el) return ''; var v=el.value; if(v===undefined||v===null) return ''; return String(v).replace(/^\s+|\s+$/g,'').toUpperCase(); }
-  function writeCookie(name,val,days){ try{ var exp=''; if(days){ var d=new Date(); d.setTime(d.getTime()+days*86400000); exp='; expires='+d.toUTCString(); } document.cookie=name+'='+encodeURIComponent(val)+exp+'; path=/; SameSite=Lax'; return true; }catch(e){ return false; } }
-  function showAppDirect(){
-    try{
-      var ov=getEl('auth-overlay'); if(ov){ ov.classList.add('hidden'); ov.style.display='none'; }
-      var mc=getEl('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display='block'; }
-      var hr=getEl('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display='block'; }
-      var sp=getEl('supervisor-panel');
-      // role-aware: only admin sees supervisor
-      var _sessForHeader=null;
-      try{
-        var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
-        if(!raw) try{ raw=sessionStorage.getItem(KEY); }catch(e){}
-        if(!raw) try{ var m=document.cookie.match(/(?:^|; )sabratha_session_v2=([^;]*)/); if(m) raw=decodeURIComponent(m[1]); }catch(e){}
-        if(!raw && window._fallbackSession) try{ raw=JSON.stringify(window._fallbackSession); }catch(e){}
-        if(!raw) raw=JSON.stringify(FALLBACK_ADMIN);
-        var role=null; if(raw) try{ var _j=JSON.parse(raw); role=_j.role; _sessForHeader=_j; }catch(e){}
-        if(sp){
-          if(role==='admin'){ sp.classList.remove('hidden'); sp.style.display='block'; }
-          else { sp.classList.add('hidden'); sp.style.display='none'; }
-        }
-      }catch(e){ if(sp){ sp.classList.remove('hidden'); sp.style.display='block'; } }
-      try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(_sessForHeader||FALLBACK_ADMIN); }catch(e){}
-      var msg=getEl('auth-msg-admin'); if(msg) msg.textContent='تم الدخول (وضع مؤقت) — مرحبا إيناس';
-      var cont=getEl('toast-container');
-      if(cont){ var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm bg-brand-800 text-white'; d.textContent='مرحبا — المشرفة إيناس (وضع مؤقت)'; cont.appendChild(d); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },4000); }
-      try{ window._fallbackSession=FALLBACK_ADMIN; }catch(e){}
-    }catch(e){}
-  }
-  function doLogin(){
-    var saved=false;
-    try{ localStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){}
-    if(!saved){ try{ sessionStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){} }
-    if(!saved){ if(writeCookie(KEY, JSON.stringify(FALLBACK_ADMIN), 365)) saved=true; }
-    var a=getEl('auth-msg-admin'); if(a) a.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت) — جارٍ الفتح...';
-    var t=getEl('auth-msg-teacher'); if(t) t.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت)...';
-    if(saved){ setTimeout(function(){ try{ location.reload(); }catch(e){ showAppDirect(); } },300); } else { setTimeout(showAppDirect,150); }
-  }
-  function attach(){
-    var btnAdmin=getEl('btn-admin-submit');
-    var inputAdmin=getEl('admin-code');
-    var formAdmin=getEl('admin-login-form');
-    if(btnAdmin) btnAdmin.addEventListener('click', function(ev){ var code=getVal(inputAdmin); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
-    if(formAdmin) formAdmin.addEventListener('submit', function(ev){ var code=getVal(inputAdmin); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
-    var btnTeacher=getEl('btn-teacher-submit');
-    var inputTeacher=getEl('teacher-code');
-    var formTeacher=getEl('teacher-login-form');
-    if(btnTeacher) btnTeacher.addEventListener('click', function(ev){ var code=getVal(inputTeacher); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
-    if(formTeacher) formTeacher.addEventListener('submit', function(ev){ var code=getVal(inputTeacher); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
-    if(inputAdmin) inputAdmin.addEventListener('keydown', function(ev){ if(ev.key==='Enter' || ev.keyCode===13){ var code=getVal(inputAdmin); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } } });
-    var emerg=getEl('btn-emergency-login');
-    if(emerg) emerg.addEventListener('click', function(){ doLogin(); });
-  }
-    // skip autoRestore if logout just done
-  function hasSession(){
-    try{ if(window.__logoutJustDone) return false; }catch(e){}
-    try{ if(localStorage.getItem(KEY)) return true; }catch(e){}
-    try{ if(sessionStorage.getItem(KEY)) return true; }catch(e){}
-    try{ var ck=document.cookie; if(ck && ck.indexOf(KEY+'=')>-1) return true; }catch(e){}
-    try{ if(window._fallbackSession && window._fallbackSession.code) return true; }catch(e){}
-    return false;
-  }
-  function autoRestore(){
-    if(hasSession()){
-      try{
-        var ov=getEl('auth-overlay'); if(ov && ov.style.display!=='none' && !ov.classList.contains('hidden')){
-          // Check if auth.js already handled it to avoid double
-          setTimeout(function(){
-            if(window.__logoutJustDone) return;
-            var stillVisible = ov && (ov.style.display!=='none' && !ov.classList.contains('hidden'));
-            if(stillVisible) showAppDirect();
-          }, 800);
-        }
-      }catch(e){}
-    }
-  }
-  // === EMERGENCY teacher code login fallback ===
-  (function(){
-    var INV_KEY='sabratha_invites_local'; var PROF_KEY='sabratha_profiles_local'; var SESS_KEY='sabratha_session_v2';
-    function gEl2(id){ return document.getElementById(id); }
-    function showToast2(msg,bg){ try{ var c=gEl2('toast-container'); if(!c) return; var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm'; d.style.background=bg||'#0F4C5C'; d.style.color='#fff'; d.textContent=msg; c.appendChild(d); setTimeout(function(){ try{ d.style.opacity='0'; setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },400);}catch(e){ if(d.parentNode) d.parentNode.removeChild(d);} },3500);}catch(e){} }
-    function emergencyTeacherLogin(ev){
-      try{
-        if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} }
-        var input=gEl2('teacher-code'); var code=(input? (input.value||'').replace(/^\s+|\s+$/g,'').toUpperCase() : '');
-        if(!code){ showToast2('أدخل رمز الدعوة أولاً','#dc2626'); return false; }
-        if(code==='ENAS-SUPERVISOR'){
-          // delegate to Enas login
-          try{ if(window._fallbackEnasLogin) { window._fallbackEnasLogin(); return false; } }catch(e){}
-        }
-        // Try to redeem via local invites
-        var msgEl=gEl2('auth-msg-teacher'); if(msgEl){ msgEl.textContent='جاري التحقق...'; msgEl.style.color='#64748b'; }
-        var btn=gEl2('btn-teacher-submit'); if(btn){ btn.disabled=true; btn.textContent='جاري...'; }
-        // Quick local check first
-        setTimeout(function(){
-          try{
-            var prof=null; var invite=null;
-            // find existing profile
-            try{ var pRaw=null; try{ pRaw=localStorage.getItem(PROF_KEY); }catch(e){ try{ pRaw=sessionStorage.getItem(PROF_KEY); }catch(e2){} } var profs=pRaw?JSON.parse(pRaw):[]; for(var i=0;i<profs.length;i++){ if((profs[i].code||'').toUpperCase()===code){ prof=profs[i]; break; } } }catch(e){}
-            if(prof){
-              try{ localStorage.setItem(SESS_KEY, JSON.stringify(prof)); }catch(e){ try{ sessionStorage.setItem(SESS_KEY, JSON.stringify(prof)); }catch(e2){ try{ document.cookie=SESS_KEY+'='+encodeURIComponent(JSON.stringify(prof))+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e3){} } } try{ window._fallbackSession=prof; }catch(e){}
-              showToast2('مرحباً '+ (prof.full_name||'')); setTimeout(function(){ location.reload(); },400); return;
-            }
-            // find invite
-            try{ var iRaw=null; try{ iRaw=localStorage.getItem(INV_KEY); }catch(e){ try{ iRaw=sessionStorage.getItem(INV_KEY); }catch(e2){} } var invs=iRaw?JSON.parse(iRaw):[]; for(var k=0;k<invs.length;k++){ if((invs[k].code||'').toUpperCase()===code){ invite=invs[k]; break; } } }catch(e){}
-            if(!invite){
-              // fallback: allow ELT- codes generated on admin device but not synced to this device (localStorage isolated)
-              if(code.indexOf('ELT-')===0 && code.length>=7){
-                invite={code:code, for_name: (function(){ try{ var fe=gEl2('t-fullname'); return fe? (fe.value||'').trim(): ''; }catch(e){ return ''; } })() || code, role:'teacher'};
-              } else {
-                if(msgEl){ msgEl.textContent='رمز غير صحيح — تأكد من الرمز أو اطلب رمزًا جديدًا من المشرفة إيناس.'; msgEl.style.color='#dc2626'; }
-                showToast2('رمز غير صحيح','#dc2626'); if(btn){ btn.disabled=false; btn.textContent='دخول / تفعيل الرمز'; } return;
-              }
-            }
-            // create profile from invite
-            var fnEl=gEl2('t-fullname'); var titleEl=gEl2('t-title'); var subjEl=gEl2('t-subjects'); var yrsEl=gEl2('t-years');
-            var fn = fnEl? fnEl.value.replace(/^\s+|\s+$/g,'') : ''; var ttl = titleEl? titleEl.value.replace(/^\s+|\s+$/g,'') : ''; var subj = subjEl? subjEl.value.replace(/^\s+|\s+$/g,'') : ''; var yrs = yrsEl? yrsEl.value.replace(/^\s+|\s+$/g,'') : '';
-            var newProf={id:'local-'+Date.now(), code:code, role:'teacher', full_name: fn||invite.for_name||code, fullName: fn||invite.for_name||code, title: ttl||'', subjects: subj||'', academic_year: yrs||'', academicYear: yrs||'', schedule:'', created_at:new Date().toISOString()};
-            // save profile
-            try{ var all=[]; try{ var v=localStorage.getItem(PROF_KEY); all=v?JSON.parse(v):[]; }catch(e){} all.push(newProf); try{ localStorage.setItem(PROF_KEY, JSON.stringify(all)); }catch(e){ try{ sessionStorage.setItem(PROF_KEY, JSON.stringify(all)); }catch(e2){} } }catch(e){}
-            // mark invite used
-            try{ var arr2=[]; try{ var vv=localStorage.getItem(INV_KEY); arr2=vv?JSON.parse(vv):[]; }catch(e){} for(var x=0;x<arr2.length;x++){ if((arr2[x].code||'').toUpperCase()===code) arr2[x].used=true; } try{ localStorage.setItem(INV_KEY, JSON.stringify(arr2)); }catch(e){} }catch(e){}
-            // save session
-            try{ localStorage.setItem(SESS_KEY, JSON.stringify(newProf)); }catch(e){ try{ sessionStorage.setItem(SESS_KEY, JSON.stringify(newProf)); }catch(e2){ try{ document.cookie=SESS_KEY+'='+encodeURIComponent(JSON.stringify(newProf))+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e3){} } } try{ window._fallbackSession=newProf; }catch(e){}
-            showToast2('مرحباً '+ (newProf.full_name||'')); setTimeout(function(){ location.reload(); },400);
-          }catch(err){ console.error(err); if(msgEl){ msgEl.textContent=err.message||'حدث خطأ'; msgEl.style.color='#dc2626'; } showToast2(err.message||'حدث خطأ','#dc2626'); if(btn){ btn.disabled=false; btn.textContent='دخول / تفعيل الرمز'; } }
-          finally{ /* btn re-enabled in branches */ }
-        },150);
-      }catch(err){ console.error(err); }
-      return false;
-    }
-    function bindTeacherEmergency(){
-      var f=gEl2('teacher-login-form'); var b=gEl2('btn-teacher-submit'); var inp=gEl2('teacher-code');
-      if(f && !f._emerT){ f._emerT=true; f.addEventListener('submit', emergencyTeacherLogin); }
-      if(b && !b._emerT){ b._emerT=true; b.addEventListener('click', emergencyTeacherLogin); }
-      if(inp && !inp._emerT){ inp._emerT=true; inp.addEventListener('keydown', function(ev){ if(ev.key==='Enter'||ev.keyCode===13){ ev.preventDefault(); emergencyTeacherLogin(ev); } }); }
-    }
-    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindTeacherEmergency); else bindTeacherEmergency();
-    setTimeout(bindTeacherEmergency, 500); setTimeout(bindTeacherEmergency, 1500);
-    window._emergencyTeacherLogin=emergencyTeacherLogin;
-  })();
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ attach(); setTimeout(autoRestore, 600); }); else { attach(); setTimeout(autoRestore, 600); }
-  window._fallbackEnasLogin=doLogin;
-  window._showAppDirect=showAppDirect;
-})();
-</script>
 </body>
 </html>
