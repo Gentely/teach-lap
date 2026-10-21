@@ -5,6 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SABRATHA ELT Tech-Assistant | مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</title>
   <script>
+  // fallback header updater: shows badge+logout instantly even before app.js
+  function updateHeaderFallback(sess){
+    try{
+      var badge=document.getElementById('user-badge'); var nameEl=document.getElementById('user-name'); var roleEl=document.getElementById('user-role'); var logoutBtn=document.getElementById('btn-logout'); var heroProfile=document.getElementById('hero-profile');
+      if(!sess || !sess.code){ if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if(logoutBtn){ logoutBtn.classList.add('hidden'); } if(heroProfile) heroProfile.classList.add('hidden'); return; }
+      if(badge){ badge.classList.remove('hidden'); badge.classList.add('flex'); }
+      if(logoutBtn){ logoutBtn.classList.remove('hidden'); logoutBtn.style.display=''; }
+      if(nameEl) nameEl.textContent=sess.full_name||sess.code||'';
+      if(roleEl) roleEl.textContent=sess.role==='admin' ? 'مشرفة' : 'أستاذ';
+      if(heroProfile){
+        heroProfile.classList.remove('hidden');
+        var hw=document.getElementById('hero-welcome'); if(hw) hw.textContent=sess.role==='admin' ? 'مرحبًا — المشرفة إيناس' : 'مرحبًا، '+(sess.full_name||'');
+        var hs=document.getElementById('hero-subjects'); if(hs) hs.textContent=sess.subjects ? 'المواد: '+sess.subjects : '';
+        var hy=document.getElementById('hero-years'); if(hy) hy.textContent=sess.academic_year ? 'السنوات: '+sess.academic_year : '';
+      }
+      if(logoutBtn && !logoutBtn._fallbackBound){
+        logoutBtn._fallbackBound=true;
+        logoutBtn.addEventListener('click', function(){
+          var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local']; for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} }
+          try{ window._fallbackSession=null; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){} try{ location.href=location.origin+location.pathname; }catch(e){ location.reload(); }
+        });
+      }
+    }catch(e){}
+  }
   // ULTRA fallback — ?enas=1 direct login, old Samsung compatible (no ?.)
   (function(){
     try{
@@ -17,7 +41,7 @@
         try{ window._fallbackSession=null; }catch(e){}
         if(window.__auth_memStore) try{ window.__auth_memStore={}; }catch(e){}
         // force overlay visible and hide supervisor immediately, and clean URL
-        var __doLogoutUI=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var hr=document.getElementById('hero'); if(hr){ hr.classList.add('hidden'); hr.style.display='none'; } }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
+        var __doLogoutUI=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var hr=document.getElementById('hero'); if(hr){ hr.classList.add('hidden'); hr.style.display='none'; } try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){} }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
         if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',__doLogoutUI); else __doLogoutUI();
         // stop further auto-restore for this load
         try{ window.__logoutJustDone=true; }catch(e){}
@@ -30,7 +54,7 @@
         try{ sessionStorage.setItem(KEY,data);}catch(e){}
         try{ document.cookie=KEY+'='+encodeURIComponent(data)+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e){}
         try{ window._fallbackSession=ADMIN; }catch(e){}
-        var doHide=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } }catch(e){} };
+        var doHide=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } updateHeaderFallback(ADMIN); }catch(e){} };
         if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide); else doHide();
       } else {
         // Also restore if cookie session exists (for reload without ?enas=1 when localStorage blocked)
@@ -45,6 +69,7 @@
           if(!raw && window._fallbackSession) { try{ raw=JSON.stringify(window._fallbackSession); }catch(e){} }
           if(raw){
             var role=null; try{ var sess=JSON.parse(raw); role=sess.role||null; }catch(e){}
+            var _sess2=null; try{ _sess2=JSON.parse(raw); }catch(e){}
             var doHide2=function(){ try{
               if(window.__logoutJustDone) return;
               var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none';
@@ -55,6 +80,7 @@
                 if(role==='admin'){ sp.classList.remove('hidden'); sp.style.display=''; }
                 else { sp.classList.add('hidden'); sp.style.display='none'; }
               }
+              updateHeaderFallback(_sess2);
             }catch(e){} };
             if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide2); else doHide2();
           }
@@ -292,6 +318,10 @@
       <div class="mt-6">
         <h4 class="font-extrabold text-brand-900 text-sm">الأكواد المولّدة</h4>
         <div id="invites-list" class="mt-3 space-y-2"></div>
+      </div>
+      <div class="mt-8 pt-4 border-t-2 border-brand-900/20 flex flex-wrap gap-3 items-center justify-between">
+        <p class="text-xs text-brand-900/70">انتهيت؟ يمكنك الخروج من حساب المشرفة هنا.</p>
+        <button id="btn-logout-panel" type="button" onclick="try{ var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local']; for(var i=0;i<__k.length;i++){var kk=__k[i]; try{ localStorage.removeItem(kk);}catch(e){} try{ sessionStorage.removeItem(kk);}catch(e){} try{ document.cookie=kk+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';}catch(e){}} try{ window._fallbackSession=null; window.__logoutJustDone=true; }catch(e){} location.href=location.origin+location.pathname; }catch(e){ location.reload(); }" class="px-5 py-2.5 rounded-xl bg-white border-2 border-brand-900 text-brand-900 text-sm font-extrabold hover:bg-brand-50 transition">🚪 خروج — تسجيل خروج المشرفة</button>
       </div>
     </div>
   </section>
@@ -649,17 +679,20 @@
       var hr=getEl('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display='block'; }
       var sp=getEl('supervisor-panel');
       // role-aware: only admin sees supervisor
+      var _sessForHeader=null;
       try{
         var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
         if(!raw) try{ raw=sessionStorage.getItem(KEY); }catch(e){}
         if(!raw) try{ var m=document.cookie.match(/(?:^|; )sabratha_session_v2=([^;]*)/); if(m) raw=decodeURIComponent(m[1]); }catch(e){}
         if(!raw && window._fallbackSession) try{ raw=JSON.stringify(window._fallbackSession); }catch(e){}
-        var role=null; if(raw) try{ role=JSON.parse(raw).role; }catch(e){}
+        if(!raw) raw=JSON.stringify(FALLBACK_ADMIN);
+        var role=null; if(raw) try{ var _j=JSON.parse(raw); role=_j.role; _sessForHeader=_j; }catch(e){}
         if(sp){
           if(role==='admin'){ sp.classList.remove('hidden'); sp.style.display='block'; }
           else { sp.classList.add('hidden'); sp.style.display='none'; }
         }
       }catch(e){ if(sp){ sp.classList.remove('hidden'); sp.style.display='block'; } }
+      try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(_sessForHeader||FALLBACK_ADMIN); }catch(e){}
       var msg=getEl('auth-msg-admin'); if(msg) msg.textContent='تم الدخول (وضع مؤقت) — مرحبا إيناس';
       var cont=getEl('toast-container');
       if(cont){ var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm bg-brand-800 text-white'; d.textContent='مرحبا — المشرفة إيناس (وضع مؤقت)'; cont.appendChild(d); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },4000); }
