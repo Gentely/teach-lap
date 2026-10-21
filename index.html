@@ -95,7 +95,11 @@
               <button type="submit" id="btn-admin-submit" class="w-full py-3 rounded-xl bg-gold-500 text-brand-900 font-extrabold hover:bg-gold-600 transition active:scale-[0.98] shadow">دخول المشرفة</button>
             </form>
             <p id="auth-msg-admin" class="text-xs text-center mt-3 min-h-[18px] font-bold"></p>
-            <p class="text-[11px] text-slate-500 text-center mt-auto pt-2">هذا المربع مخصص للمشرفة فقط.</p>
+            <button id="btn-emergency-login" type="button" class="w-full mt-2 py-2.5 rounded-xl bg-white border-2 border-brand-800 text-brand-900 text-xs font-extrabold hover:bg-brand-50 transition flex items-center justify-center gap-2">
+              🚀 دخول فوري كمشرفة (بدون انتظار)
+            </button>
+            <p class="text-[10px] text-slate-400 text-center">للموبايل — يعمل حتى لو زر الدخول لا يستجيب</p>
+            <p class="text-[11px] text-slate-500 text-center mt-2">هذا المربع مخصص للمشرفة فقط.</p>
           </div>
         </div>
         <!-- Hidden legacy tab elements for backward compat -->
@@ -488,6 +492,9 @@
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', attach); else attach();
   window._fallbackEnasLogin=doLogin;
+  // emergency visible button
+  var emerg=document.getElementById('btn-emergency-login');
+  if(emerg) emerg.addEventListener('click', function(){ console.log('[fallback] emergency btn'); doLogin(); });
   console.log('[fallback] ready — window._fallbackEnasLogin() to force login');
 })();
   </script>
