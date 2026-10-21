@@ -22,6 +22,7 @@ const FALLBACK_ADMIN = {
   subjects: 'Employing Technology in ELT — وجميع مقررات القسم',
   academic_year: 'جميع السنوات',
   academicYear: 'جميع السنوات',
+  schedule: 'حسب الجدول الدراسي',
   created_at: new Date().toISOString(),
 };
 
@@ -51,7 +52,7 @@ export function getSession() {
 }
 export function setSession(profile) {
   if (!profile) { try{ safeRemove(SESSION_KEY); }catch{} currentProfile = null; try{ if(typeof window!=='undefined') window._fallbackSession=null; }catch{} return; }
-  const normalized = { ...profile, full_name: profile.full_name || profile.fullName || '', academic_year: profile.academic_year || profile.academicYear || '' };
+  const normalized = { ...profile, full_name: profile.full_name || profile.fullName || '', academic_year: profile.academic_year || profile.academicYear || '', schedule: profile.schedule || '' };
   try{ safeSet(SESSION_KEY, JSON.stringify(normalized)); }catch(e){ console.warn('setSession fallback',e.message); try{ memStore[SESSION_KEY]=JSON.stringify(normalized); }catch{} }
   try{ if(typeof window!=='undefined') window._fallbackSession=normalized; }catch{}
   currentProfile = normalized;
@@ -131,7 +132,7 @@ export async function createInvite({ forName, createdBy }) {
 }
 
 // Teacher redeems code + creates profile
-export async function redeemInvite({ code, fullName, title, subjects, academicYear }) {
+export async function redeemInvite({ code, fullName, title, subjects, academicYear, schedule }) {
   const normalized = (code || '').trim().toUpperCase();
   if (!normalized) throw new Error(deps.t('err_code_required'));
 
@@ -165,7 +166,15 @@ export async function redeemInvite({ code, fullName, title, subjects, academicYe
     const invites = getLocalInvites();
     invite = invites.find(i => i.code === normalized);
   }
-  if (!invite) throw new Error(deps.t('err_code_invalid'));
+  if (!invite) {
+    // fallback: if code looks like generated ELT-XXXX-XXXX, allow direct redeem even when invite not synced (local-only on admin device)
+    const isEltLike = /^ELT-[A-Z0-9]{3,8}(?:-[A-Z0-9]{3,8})?$/i.test(normalized);
+    if (isEltLike) {
+      invite = { code: normalized, for_name: fullName || normalized, role: 'teacher', created_by: null, used: false };
+    } else {
+      throw new Error(deps.t('err_code_invalid'));
+    }
+  }
   if (invite.used) throw new Error(deps.t('err_code_used'));
 
   // Create teacher profile
@@ -173,14 +182,14 @@ export async function redeemInvite({ code, fullName, title, subjects, academicYe
   if (deps?.db?.createProfile) {
     try {
       const { data, error } = await deps.db.createProfile({
-        code: normalized, role: 'teacher', fullName: fullName || invite.for_name, title: title || '', subjects: subjects || '', academicYear: academicYear || '', createdBy: invite.created_by,
+        code: normalized, role: 'teacher', fullName: fullName || invite.for_name, title: title || '', subjects: subjects || '', academicYear: academicYear || '', schedule: schedule || '', createdBy: invite.created_by,
       });
       if (!error && data) profile = data;
       else if (error && !isMissingTableError(error)) throw error;
     } catch (e) { if (!isMissingTableError(e)) throw e; }
   }
   if (!profile) {
-    profile = { id: `local-${Date.now()}`, code: normalized, role: 'teacher', full_name: fullName || invite.for_name, fullName: fullName || invite.for_name, title: title || '', subjects: subjects || '', academic_year: academicYear || '', academicYear: academicYear || '', created_at: new Date().toISOString(), created_by: invite.created_by };
+    profile = { id: `local-${Date.now()}`, code: normalized, role: 'teacher', full_name: fullName || invite.for_name, fullName: fullName || invite.for_name, title: title || '', subjects: subjects || '', academic_year: academicYear || '', academicYear: academicYear || '', schedule: schedule || '', created_at: new Date().toISOString(), created_by: invite.created_by };
     const all = getLocalProfiles(); all.push(profile); setLocalProfiles(all);
     const invites = getLocalInvites(); const idx = invites.findIndex(i => i.code === normalized); if (idx >= 0) { invites[idx].used = true; setLocalInvites(invites); }
   } else {
@@ -238,6 +247,7 @@ export async function updateProfile({ code, updates }) {
     if (updates.title != null) profiles[idx].title = updates.title;
     if (updates.subjects != null) profiles[idx].subjects = updates.subjects;
     if (updates.academicYear != null) profiles[idx].academic_year = updates.academicYear;
+    if (updates.schedule != null) profiles[idx].schedule = updates.schedule;
     setLocalProfiles(profiles);
     setSession(profiles[idx]);
     return profiles[idx];
@@ -249,6 +259,7 @@ export async function updateProfile({ code, updates }) {
     if (updates.title != null) sess.title = updates.title;
     if (updates.subjects != null) sess.subjects = updates.subjects;
     if (updates.academicYear != null) sess.academic_year = updates.academicYear;
+    if (updates.schedule != null) sess.schedule = updates.schedule;
     setSession(sess);
     return sess;
   }
