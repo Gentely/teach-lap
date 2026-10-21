@@ -20,6 +20,19 @@
         try{ window._fallbackSession=ADMIN; }catch(e){}
         var doHide=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } }catch(e){} };
         if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide); else doHide();
+      } else {
+        // Also restore if cookie session exists (for reload without ?enas=1 when localStorage blocked)
+        try{
+          var has=false;
+          try{ if(localStorage.getItem(KEY)) has=true; }catch(e){}
+          try{ if(!has && sessionStorage.getItem(KEY)) has=true; }catch(e){}
+          try{ if(!has && document.cookie.indexOf(KEY+'=')>-1) has=true; }catch(e){}
+          if(has){
+            var doHide2=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } }catch(e){} };
+            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide2); else doHide2();
+          }
+        }catch(e){}
+      }
       }
     }catch(e){}
   })();
@@ -522,7 +535,28 @@
     var emerg=getEl('btn-emergency-login');
     if(emerg) emerg.addEventListener('click', function(){ doLogin(); });
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', attach); else attach();
+  // Auto-restore session from cookie if localStorage blocked
+  function hasSession(){
+    try{ if(localStorage.getItem(KEY)) return true; }catch(e){}
+    try{ if(sessionStorage.getItem(KEY)) return true; }catch(e){}
+    try{ var ck=document.cookie; if(ck && ck.indexOf(KEY+'=')>-1) return true; }catch(e){}
+    try{ if(window._fallbackSession && window._fallbackSession.code) return true; }catch(e){}
+    return false;
+  }
+  function autoRestore(){
+    if(hasSession()){
+      try{
+        var ov=getEl('auth-overlay'); if(ov && ov.style.display!=='none' && !ov.classList.contains('hidden')){
+          // Check if auth.js already handled it to avoid double
+          setTimeout(function(){
+            var stillVisible = ov && (ov.style.display!=='none' && !ov.classList.contains('hidden'));
+            if(stillVisible) showAppDirect();
+          }, 800);
+        }
+      }catch(e){}
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ attach(); setTimeout(autoRestore, 600); }); else { attach(); setTimeout(autoRestore, 600); }
   window._fallbackEnasLogin=doLogin;
   window._showAppDirect=showAppDirect;
 })();
