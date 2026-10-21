@@ -33,6 +33,71 @@
 </head>
 <body class="bg-sand text-slate-800 antialiased min-h-screen flex flex-col">
 
+  <!-- Access Gate — simple code E-ENGLISH -->
+  <div id="access-gate" class="fixed inset-0 z-[70] bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 grid place-items-center p-4">
+    <div class="w-full max-w-md bg-white rounded-[24px] shadow-2xl overflow-hidden">
+      <div class="bg-brand-900 text-white p-6 text-center">
+        <div class="w-12 h-12 bg-gold-500 text-brand-900 rounded-2xl grid place-items-center font-black mx-auto">S</div>
+        <h1 class="mt-3 font-black text-lg">SABRATHA ELT Tech-Assistant</h1>
+        <p class="text-xs text-brand-100 mt-1">موقع خاص — أدخل كود الدخول</p>
+      </div>
+      <form id="access-form" class="p-6 space-y-3">
+        <label class="block space-y-1">
+          <span class="text-xs font-bold text-slate-600">كود الدخول</span>
+          <input id="access-code" type="text" placeholder="مثال: E-ENGLISH" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-3 text-sm text-center tracking-widest font-mono font-bold" />
+        </label>
+        <button type="submit" id="btn-access" class="w-full py-3 rounded-xl bg-brand-800 hover:bg-brand-900 text-white font-black shadow">دخول</button>
+        <p id="access-msg" class="text-xs text-center min-h-[16px] font-bold"></p>
+        <p class="text-[11px] text-slate-500 text-center">الكود الحالي: <code class="bg-slate-100 px-2 py-0.5 rounded">E-ENGLISH</code> — غيّره في Vercel عبر <code>ACCESS_CODE</code></p>
+      </form>
+    </div>
+  </div>
+  <script>
+  (function(){
+    const gate = document.getElementById('access-gate');
+    const form = document.getElementById('access-form');
+    const input = document.getElementById('access-code');
+    const msg = document.getElementById('access-msg');
+    const STORAGE_KEY = 'sabratha_access_code';
+    // If already verified, hide gate immediately
+    try{
+      if(sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY) || document.cookie.includes('sabratha_access=1')){
+        if(gate) gate.style.display='none';
+      }
+    }catch(e){}
+    // Also support ?code=E-ENGLISH auto-login via link
+    try{
+      const m = location.search.match(/[?&]code=([^&]+)/);
+      if(m){
+        const c = decodeURIComponent(m[1]||'').trim();
+        if(c){
+          // try verify silently
+          fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:c})}).then(r=>r.json()).then(j=>{
+            if(j.success){ try{ sessionStorage.setItem(STORAGE_KEY,c); localStorage.setItem(STORAGE_KEY,c);}catch(e){} if(gate) gate.style.display='none'; history.replaceState(null,'',location.pathname); }
+          }).catch(()=>{});
+        }
+      }
+    }catch(e){}
+    if(form) form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const code = (input.value||'').trim();
+      if(!code){ msg.textContent='أدخل الكود أولاً'; msg.className='text-xs text-center min-h-[16px] font-bold text-red-600'; return; }
+      msg.textContent='جاري التحقق...'; msg.className='text-xs text-center min-h-[16px] font-bold text-slate-500';
+      try{
+        const res = await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+        const j = await res.json();
+        if(!res.ok || !j.success) throw new Error(j.message||'كود غير صحيح');
+        try{ sessionStorage.setItem(STORAGE_KEY, code); localStorage.setItem(STORAGE_KEY, code);}catch(e){}
+        msg.textContent=''; gate.style.display='none';
+      }catch(err){
+        msg.textContent = err.message || 'كود غير صحيح'; msg.className='text-xs text-center min-h-[16px] font-bold text-red-600';
+      }
+    });
+    // expose helper for generate to send header
+    window.__getAccessCode = function(){ try{ return sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY) || ''; }catch(e){ return ''; } };
+  })();
+  </script>
+
   <!-- Header -->
   <header class="bg-brand-900 text-white shadow">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
@@ -228,18 +293,20 @@
     });
     $('btn-print').addEventListener('click', ()=> window.print());
 
+    // attach access code to every generate request
     $('btn-generate').addEventListener('click', async ()=>{
       const title = $('lecture-title').value.trim();
       const text = $('lecture-text').value.trim();
       const outputLanguage = $('output-lang').value;
       if(text.length < 40) return toast('نص المحاضرة قصير جداً — الحد الأدنى 40 حرفاً','error');
       if(text.length > 80000) return toast('النص طويل جداً — الحد الأقصى 80 ألف حرف','error');
+      const accessCode = (window.__getAccessCode && window.__getAccessCode()) || '';
       loading(true);
       try{
         const res = await fetch('/api/generate', {
           method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ title, text, outputLanguage })
+          headers:{'Content-Type':'application/json','x-access-code': accessCode},
+          body: JSON.stringify({ title, text, outputLanguage, accessCode })
         });
         const json = await res.json().catch(()=>({}));
         if(!res.ok || !json.success){
