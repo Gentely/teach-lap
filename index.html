@@ -237,7 +237,7 @@
     <div class="bg-gradient-to-l from-gold-500 to-gold-600 rounded-3xl p-6 shadow-card">
       <h3 class="text-lg font-extrabold text-brand-900 flex items-center gap-2">👑 لوحة المشرفة العامة — الأستاذة إيناس مصباح عمر</h3>
       <p class="text-sm text-brand-900/80 mt-1">أدخل اسم الأستاذ ثم ولّد له رمز دعوة خاص — لا يراه إلا أنت وهو.</p>
-      <form id="generate-code-form" class="mt-4 flex flex-wrap gap-3">
+      <form id="generate-code-form" class="mt-4 flex flex-wrap gap-3" onsubmit="return false" novalidate>
         <input id="new-teacher-name" type="text" maxlength="80" required placeholder="اسم الأستاذ / الأستاذة — مثال: د. أحمد علي"
           class="flex-1 min-w-[200px] rounded-xl border-2 border-white focus:border-brand-800 outline-none px-4 py-3 text-sm" />
         <button type="submit" class="px-6 py-3 rounded-xl bg-brand-900 text-white font-extrabold hover:bg-brand-800 transition">⚡ توليد كود</button>
