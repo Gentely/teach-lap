@@ -580,15 +580,14 @@ function initAuthHandlers() {
 
   try {
     var _logoutBtn=document.getElementById('btn-logout');
-    if(_logoutBtn) _logoutBtn.addEventListener('click', function(){
+    if(_logoutBtn) _logoutBtn.addEventListener('click', function(ev){
+      if(window._doGlobalLogout){ try{ return window._doGlobalLogout(ev); }catch(e){} }
       try{
-        // thorough clear for Samsung blocked storage
         var _keys=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local'];
         for(var i=0;i<_keys.length;i++){ var _k=_keys[i]; try{ localStorage.removeItem(_k);}catch(e){} try{ sessionStorage.removeItem(_k);}catch(e){} try{ document.cookie=_k+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} }
         try{ window._fallbackSession=null; }catch(e){} try{ auth.clearSession(); }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
-        // hide panels immediately then redirect to clean URL
         try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } }catch(e){}
-        setTimeout(function(){ try{ location.href=location.origin+location.pathname; }catch(e){ location.reload(); } },120);
+        setTimeout(function(){ try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e){ location.reload(); } },80);
       } catch(e){ try{ auth.logout(); }catch(e2){ location.reload(); } }
     });
   } catch(e){}

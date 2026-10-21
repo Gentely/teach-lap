@@ -5,13 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SABRATHA ELT Tech-Assistant | مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</title>
   <script>
-  // fallback header updater: shows badge+logout instantly even before app.js
+  // GLOBAL logout — defined BEFORE any UI, works even without session/app.js (fixes Samsung + header)
+  (function(){
+    try{
+      window._doGlobalLogout=function(ev){
+        if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} try{ ev.stopImmediatePropagation&&ev.stopImmediatePropagation(); }catch(e){} }
+        var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local','sabratha_elt_name'];
+        for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0;'; }catch(e){} if(window.memStore) try{ delete window.memStore[k2]; }catch(e){} }
+        try{ window._fallbackSession=null; }catch(e){} try{ if(window.__auth_memStore) window.__auth_memStore={}; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
+        try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){}
+        // use ?logout=1 so head ULTRA fallback clears cookie/memStore even when storage blocked, then strips URL
+        try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e){ try{ location.replace(location.origin+location.pathname+'?logout=1'); }catch(e2){ location.reload(); } }
+        return false;
+      };
+    }catch(e){}
+  })();
   function updateHeaderFallback(sess){
     try{
       var badge=document.getElementById('user-badge'); var nameEl=document.getElementById('user-name'); var roleEl=document.getElementById('user-role'); var logoutBtn=document.getElementById('btn-logout'); var heroProfile=document.getElementById('hero-profile');
-      if(!sess || !sess.code){ if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if(logoutBtn){ logoutBtn.classList.add('hidden'); } if(heroProfile) heroProfile.classList.add('hidden'); return; }
+      if(!sess || !sess.code){ if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if(logoutBtn){ logoutBtn.classList.add('hidden'); logoutBtn.style.display='none'; } if(heroProfile) heroProfile.classList.add('hidden'); return; }
       if(badge){ badge.classList.remove('hidden'); badge.classList.add('flex'); }
-      if(logoutBtn){ logoutBtn.classList.remove('hidden'); logoutBtn.style.display=''; }
+      if(logoutBtn){ logoutBtn.classList.remove('hidden'); logoutBtn.style.display=''; if(!logoutBtn._fallbackBound){ logoutBtn._fallbackBound=true; try{ logoutBtn.addEventListener('click', window._doGlobalLogout); }catch(e){} } }
       if(nameEl) nameEl.textContent=sess.full_name||sess.code||'';
       if(roleEl) roleEl.textContent=sess.role==='admin' ? 'مشرفة' : 'أستاذ';
       if(heroProfile){
@@ -21,23 +35,21 @@
         var hy=document.getElementById('hero-years'); if(hy) hy.textContent=sess.academic_year ? 'السنوات: '+sess.academic_year : '';
         var hsc=document.getElementById('hero-schedule'); if(hsc) hsc.textContent=sess.schedule ? 'الأوقات: '+sess.schedule : '';
       }
-      // expose global logout for inline onclick
-      try{
-        window._doGlobalLogout=function(ev){
-          if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} }
-          var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local']; for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0;'; }catch(e){} }
-          try{ window._fallbackSession=null; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
-          try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){}
-          try{ location.href=location.origin+location.pathname; }catch(e){ location.reload(); }
-          return false;
-        };
-      }catch(e){}
-      if(logoutBtn && !logoutBtn._fallbackBound){
-        logoutBtn._fallbackBound=true;
-        logoutBtn.addEventListener('click', window._doGlobalLogout);
-      }
     }catch(e){}
   }
+  // bind logout buttons as soon as DOM ready (head executes before body, so _fallbackBound would be null)
+  (function(){
+    function bindLogoutBtns(){
+      try{
+        var btns=['btn-logout','btn-logout-panel'];
+        for(var i=0;i<btns.length;i++){ var b=document.getElementById(btns[i]); if(b && !b._fallbackBound2){ b._fallbackBound2=true; b.addEventListener('click', window._doGlobalLogout); } }
+        var heroBtn=document.querySelector('#hero-profile button'); if(heroBtn && !heroBtn._fb2){ heroBtn._fb2=true; heroBtn.addEventListener('click', window._doGlobalLogout); }
+      }catch(e){}
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindLogoutBtns);
+    else bindLogoutBtns();
+    setTimeout(bindLogoutBtns,500); setTimeout(bindLogoutBtns,1500);
+  })();
   // ULTRA fallback — ?enas=1 direct login, old Samsung compatible (no ?.)
   (function(){
     try{
@@ -56,7 +68,7 @@
         try{ window.__logoutJustDone=true; }catch(e){}
       }
       if(href.indexOf('enas=1')>-1 || href.indexOf('ENAS-SUPERVISOR')>-1 || search.indexOf('enas')>-1){
-        var ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',created_at:new Date().toISOString()};
+        var ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',schedule:'حسب الجدول الدراسي',created_at:new Date().toISOString()};
         var KEY='sabratha_session_v2';
         var data=JSON.stringify(ADMIN);
         try{ localStorage.setItem(KEY,data);}catch(e){}
