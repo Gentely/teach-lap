@@ -488,71 +488,118 @@ function initAuthHandlers() {
   document.getElementById('teacher-code')?.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); handleTeacherLogin(ev); }});
   document.getElementById('admin-code')?.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); handleAdminLogin(ev); }});
 
-  document.getElementById('btn-logout').addEventListener('click', () => auth.logout());
-
-  // Supervisor generate code — INSTANT, no waiting for Supabase; works even if storage blocked
-  document.getElementById('generate-code-form').addEventListener('submit', function(e) {
-    e.preventDefault(); e.stopPropagation();
-    var nameEl = document.getElementById('new-teacher-name');
-    var name = nameEl ? nameEl.value.trim() : '';
-    if (!name) { toast(state.lang === 'ar' ? 'أدخل اسم الأستاذ أولاً' : 'Enter teacher name', 'error'); return; }
-    // Generate code instantly on client
-    var code;
-    try { code = auth.generateCode('ELT'); } catch(err2) { // fallback if generateCode missing
-      code = 'ELT-' + Math.random().toString(36).slice(2,6).toUpperCase() + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
-    }
-    // Show immediately — no await
-    var forNameEl = document.getElementById('gen-for-name');
-    var codeEl = document.getElementById('gen-code');
-    var box = document.getElementById('generated-code-box');
-    if (forNameEl) forNameEl.textContent = name;
-    if (codeEl) codeEl.textContent = code;
-    if (box) box.classList.remove('hidden');
-    if (nameEl) nameEl.value = '';
-    toast(t('toast_invite_created'));
-    // Scroll to code so user sees it on mobile
-    setTimeout(function(){ if (box) box.scrollIntoView({behavior:'smooth', block:'center'}); }, 150);
-    // Try to save in background (Supabase or local), but don't block UI
-    var p = auth.getCurrentProfile();
+  // Supervisor generate code — attach FIRST, with full guards, before any other handler can throw
+  (function attachGenerateCode(){
     try {
-      auth.createInvite({ forName: name, createdBy: p ? p.id : null }).then(function(saved){
-        // if saved code differs, update display
-        if (saved && saved.code && codeEl) codeEl.textContent = saved.code;
-        try { refreshSupervisorData(); } catch(err3) {}
-      }).catch(function(err){ console.warn('createInvite background save failed', err.message); try { refreshSupervisorData(); } catch(e){} });
-    } catch(err4) { console.warn(err4); }
-    // Also add to local list immediately for display
-    try {
-      var list = document.getElementById('invites-list');
-      if (list && list.textContent.indexOf(code)===-1) {
-        var row = el('div', 'flex items-center gap-3 bg-white rounded-xl p-3 border-2 border-brand-900/10 text-sm');
-        row.appendChild(el('span', 'font-mono font-bold text-brand-900', code));
-        row.appendChild(el('span', 'flex-1 text-slate-600 text-xs', name + ' — ' + (state.lang==='ar' ? 'غير مستخدم' : 'unused')));
-        var copy = el('button', 'px-3 py-1 rounded-lg bg-brand-800 text-white text-xs font-bold', state.lang==='ar' ? 'نسخ' : 'Copy');
-        (function(c){ copy.addEventListener('click', function(){ copyText(c); }); })(code);
-        row.appendChild(copy);
-        // if empty message was there, clear it
-        if (list.firstChild && list.firstChild.textContent==='—') list.innerHTML='';
-        list.prepend(row);
+      var gForm = document.getElementById('generate-code-form');
+      var gInput = document.getElementById('new-teacher-name');
+      if (!gForm) { console.warn('generate-code-form not found'); return; }
+      function doGenerateCode(ev){
+        try {
+          if (ev) { try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} try{ ev.stopImmediatePropagation && ev.stopImmediatePropagation(); }catch(e){} }
+          var nameEl2 = document.getElementById('new-teacher-name');
+          var name2 = nameEl2 ? (nameEl2.value || '').trim() : '';
+          if (!name2) {
+            try { toast(state.lang === 'ar' ? 'أدخل اسم الأستاذ أولاً' : 'Enter teacher name', 'error'); } catch(e2){ alert(state.lang==='ar' ? 'أدخل اسم الأستاذ أولاً' : 'Enter name'); }
+            return false;
+          }
+          var code2;
+          try { code2 = auth.generateCode('ELT'); } catch(err2) {
+            code2 = 'ELT-' + Math.random().toString(36).slice(2,6).toUpperCase() + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+          }
+          if (!code2 || code2.length < 6) code2 = 'ELT-' + Math.random().toString(36).slice(2,6).toUpperCase() + '-' + Date.now().toString(36).slice(-4).toUpperCase();
+          var forNameEl2 = document.getElementById('gen-for-name');
+          var codeEl2 = document.getElementById('gen-code');
+          var box2 = document.getElementById('generated-code-box');
+          if (forNameEl2) forNameEl2.textContent = name2;
+          if (codeEl2) { codeEl2.textContent = code2; codeEl2.style.display=''; }
+          if (box2) { box2.classList.remove('hidden'); box2.style.display='block'; box2.removeAttribute('hidden'); }
+          if (nameEl2) nameEl2.value = '';
+          try { toast(t('toast_invite_created')); } catch(e3){}
+          // also toast via DOM fallback if toast fails
+          try {
+            var tc=document.getElementById('toast-container');
+            if (tc && !tc.children.length) { /* toast already shown */ }
+          } catch(e){}
+          setTimeout(function(){ try{ if (box2) box2.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){} }, 120);
+          // expose for inline fallback to dedupe
+          try { window._lastGeneratedCode = code2; window._lastGeneratedAt = Date.now(); } catch(e){}
+          // background save
+          try {
+            var p2 = null; try{ p2 = auth.getCurrentProfile(); }catch(e){}
+            auth.createInvite({ forName: name2, createdBy: p2 ? p2.id : null }).then(function(saved){
+              if (saved && saved.code && codeEl2) { codeEl2.textContent = saved.code; try{ window._lastGeneratedCode=saved.code; }catch(e){} }
+              try { refreshSupervisorData(); } catch(err3) {}
+            }).catch(function(err){ console.warn('createInvite bg fail', err && err.message); try { refreshSupervisorData(); } catch(e){} });
+          } catch(err4) { console.warn(err4); }
+          // local list immediate
+          try {
+            var list2 = document.getElementById('invites-list');
+            if (list2) {
+              if (list2.textContent.trim() === '—') list2.innerHTML='';
+              // avoid duplicate if emergency handler already added
+              var already = false; try{ already = list2.textContent.indexOf(code2) !== -1; }catch(e){}
+              if (!already) {
+                var row2 = el('div', 'flex items-center gap-3 bg-white rounded-xl p-3 border-2 border-brand-900/10 text-sm');
+                row2.appendChild(el('span', 'font-mono font-bold text-brand-900', code2));
+                row2.appendChild(el('span', 'flex-1 text-slate-600 text-xs', name2 + ' — ' + (state.lang==='ar' ? 'غير مستخدم' : 'unused')));
+                var copy2 = el('button', 'px-3 py-1 rounded-lg bg-brand-800 text-white text-xs font-bold', state.lang==='ar' ? 'نسخ' : 'Copy');
+                (function(c){ copy2.addEventListener('click', function(){ copyText(c); }); })(code2);
+                row2.appendChild(copy2);
+                list2.prepend(row2);
+              }
+            }
+          } catch(e){}
+        } catch(errAll){
+          console.error('doGenerateCode error', errAll);
+          try{ alert('خطأ: ' + (errAll.message||errAll)); }catch(e){}
+          try{ toast('خطأ: '+(errAll.message||errAll), 'error'); }catch(e){}
+        }
+        return false;
       }
-    } catch(e){}
-  });
-  document.getElementById('btn-copy-code').addEventListener('click', function() { var elc=document.getElementById('gen-code'); if(elc) copyText(elc.textContent); });
-  document.getElementById('btn-share-code').addEventListener('click', function() {
-    var codeEl=document.getElementById('gen-code'); var nameEl=document.getElementById('gen-for-name');
-    var code = codeEl ? codeEl.textContent : ''; var name = nameEl ? nameEl.textContent : '';
-    var text = (state.lang === 'ar' ? 'رمز دعوة للأستاذ' : 'Invite code for') + ' ' + name + ': ' + code + ' — ' + location.origin;
-    if (navigator.share) { try { navigator.share({ title: 'ELT Tech-Assistant — Invite', text: text }); } catch(e2) { copyText(text); } } else copyText(text);
-  });
+      // expose for inline onclick dedupe
+      try{ window._fallbackGenCode = function(ev){
+        // if app.js just generated within 1s, skip duplicate
+        try{ if (window._lastGeneratedAt && (Date.now()-window._lastGeneratedAt < 900)) return false; }catch(e){}
+        return doGenerateCode(ev);
+      }; }catch(e){}
+      gForm.addEventListener('submit', doGenerateCode);
+      // also direct click on button (covers Samsung where submit doesn't fire)
+      var gBtn = gForm.querySelector('button[type="submit"]');
+      if (gBtn) gBtn.addEventListener('click', doGenerateCode);
+      // also catch via capture on form
+      gForm.addEventListener('click', function(ev){
+        var target = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+        if (target && gForm.contains(target)) { /* handled by button */ }
+      });
+    } catch(eTop){ console.error('attachGenerateCode top error', eTop); }
+  })();
 
-  // Onboarding modal handler
+  try { document.getElementById('btn-logout').addEventListener('click', function(){ try{ auth.logout(); }catch(e){ location.reload(); } }); } catch(e){}
+  try {
+    var _copyBtn=document.getElementById('btn-copy-code');
+    if(_copyBtn) _copyBtn.addEventListener('click', function() { var elc=document.getElementById('gen-code'); if(elc && elc.textContent) copyText(elc.textContent); else toast(state.lang==='ar'?'لا يوجد كود للنسخ':'No code','error'); });
+  } catch(e){}
+  try {
+    var _shareBtn=document.getElementById('btn-share-code');
+    if(_shareBtn) _shareBtn.addEventListener('click', function() {
+      var codeEl=document.getElementById('gen-code'); var nameEl=document.getElementById('gen-for-name');
+      var code = codeEl ? codeEl.textContent : ''; var name = nameEl ? nameEl.textContent : '';
+      if(!code){ toast(state.lang==='ar'?'لا يوجد كود للمشاركة':'No code','error'); return; }
+      var text = (state.lang === 'ar' ? 'رمز دعوة للأستاذ' : 'Invite code for') + ' ' + name + ': ' + code + ' — ' + location.origin;
+      if (navigator.share) { try { navigator.share({ title: 'ELT Tech-Assistant — Invite', text: text }); return; } catch(e2) {} } copyText(text);
+    });
+  } catch(e){}
+
+  // Onboarding modal handler — guarded
+  try {
   document.getElementById('onboarding-form').addEventListener('submit', async e => {
     e.preventDefault();
     const p = auth.getCurrentProfile(); if (!p) return;
     const updates = { fullName: document.getElementById('ob-fullname').value.trim(), title: document.getElementById('ob-title').value.trim(), subjects: document.getElementById('ob-subjects').value.trim(), academicYear: document.getElementById('ob-years').value.trim() };
     if (!updates.fullName) { toast(t('err_code_required'), 'error'); return; }
     try { await auth.updateProfile({ code: p.code, updates }); toast(t('toast_profile_saved')); document.getElementById('onboarding-modal').classList.add('hidden'); updateHeaderProfile(); } catch (err) { toast(err.message, 'error'); }
-  });
+  }); } catch(e){ console.warn('onboarding handler', e.message); }
 }
 
 function checkProfileComplete(p) {
