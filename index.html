@@ -453,6 +453,43 @@
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.2/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script type="module" src="app.js"></script>
+    <script type="module" src="app.js"></script>
+  <script>
+// Emergency fallback for ENAS-SUPERVISOR — bypass Supabase/query entirely
+(function(){
+  const FALLBACK_ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar — إيناس مصباح عمر',title:'المشرفة العامة — أستاذة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',academicYear:'جميع السنوات',created_at:new Date().toISOString()};
+  const KEY='sabratha_session_v2';
+  function doLogin(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN));
+      var a=document.getElementById('auth-msg-admin'); if(a) a.textContent='تم الدخول — جارٍ التحميل...';
+      var t=document.getElementById('auth-msg-teacher'); if(t) t.textContent='تم الدخول — جارٍ التحميل...';
+      setTimeout(()=>location.reload(),300);
+    }catch(e){ alert('خطأ fallback: '+e.message); console.error(e); }
+  }
+  function attach(){
+    var btnAdmin=document.getElementById('btn-admin-submit');
+    var inputAdmin=document.getElementById('admin-code');
+    var formAdmin=document.getElementById('admin-login-form');
+    if(btnAdmin) btnAdmin.addEventListener('click', function(ev){
+      var code=(inputAdmin?.value||'').trim().toUpperCase();
+      if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); console.log('[fallback] admin btn'); doLogin(); }
+    });
+    if(formAdmin) formAdmin.addEventListener('submit', function(ev){
+      var code=(inputAdmin?.value||'').trim().toUpperCase();
+      if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); console.log('[fallback] admin form'); doLogin(); }
+    });
+    var btnTeacher=document.getElementById('btn-teacher-submit');
+    var inputTeacher=document.getElementById('teacher-code');
+    var formTeacher=document.getElementById('teacher-login-form');
+    if(btnTeacher) btnTeacher.addEventListener('click', function(ev){ var code=(inputTeacher?.value||'').trim().toUpperCase(); if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); console.log('[fallback] teacher btn admin'); doLogin(); }});
+    if(formTeacher) formTeacher.addEventListener('submit', function(ev){ var code=(inputTeacher?.value||'').trim().toUpperCase(); if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); doLogin(); }});
+    if(inputAdmin) inputAdmin.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ var code=(inputAdmin.value||'').trim().toUpperCase(); if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); doLogin(); }}});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', attach); else attach();
+  window._fallbackEnasLogin=doLogin;
+  console.log('[fallback] ready — window._fallbackEnasLogin() to force login');
+})();
+  </script>
 </body>
 </html>
