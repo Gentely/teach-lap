@@ -463,13 +463,36 @@
 (function(){
   const FALLBACK_ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar — إيناس مصباح عمر',title:'المشرفة العامة — أستاذة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',academicYear:'جميع السنوات',created_at:new Date().toISOString()};
   const KEY='sabratha_session_v2';
-  function doLogin(){
+  function readCookie(name){ try{ var m=document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-.+*^$|()\[\]{}]/g,'\\$&')+'=([^;]*)')); return m? decodeURIComponent(m[1]): null; }catch{ return null; } }
+  function writeCookie(name,val,days){ try{ var exp=''; if(days){ var d=new Date(); d.setTime(d.getTime()+days*864e5); exp='; expires='+d.toUTCString(); } document.cookie=name+'='+encodeURIComponent(val)+exp+'; path=/; SameSite=Lax'; return true; }catch{ return false; } }
+  function showAppDirect(){
     try{
-      localStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN));
-      var a=document.getElementById('auth-msg-admin'); if(a) a.textContent='تم الدخول — جارٍ التحميل...';
-      var t=document.getElementById('auth-msg-teacher'); if(t) t.textContent='تم الدخول — جارٍ التحميل...';
-      setTimeout(()=>location.reload(),300);
-    }catch(e){ alert('خطأ fallback: '+e.message); console.error(e); }
+      var ov=document.getElementById('auth-overlay'); if(ov) ov.classList.add('hidden');
+      var mc=document.getElementById('main-content'); if(mc) mc.classList.remove('hidden');
+      var hr=document.getElementById('hero'); if(hr) hr.classList.remove('hidden');
+      var sp=document.getElementById('supervisor-panel'); if(sp) sp.classList.remove('hidden');
+      var msg=document.getElementById('auth-msg-admin'); if(msg) msg.textContent='تم الدخول (وضع مؤقت بدون حفظ) — مرحبا إيناس';
+      // show toast manually
+      var cont=document.getElementById('toast-container');
+      if(cont){ var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm bg-brand-800 text-white'; d.textContent='مرحبا — المشرفة إيناس (وضع مؤقت)'; cont.appendChild(d); setTimeout(()=>d.remove(),4000); }
+      // keep fallback in memory
+      try{ window._fallbackSession=FALLBACK_ADMIN; }catch{}
+    }catch(e){ console.error('showAppDirect',e); }
+  }
+  function doLogin(){
+    var saved=false;
+    try{ localStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){ console.warn('[fallback] localStorage denied', e.message); }
+    if(!saved){ try{ sessionStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){ console.warn('sessionStorage denied',e.message); } }
+    if(!saved){ if(writeCookie(KEY, JSON.stringify(FALLBACK_ADMIN), 365)) saved=true; }
+    // always update UI regardless of persistence
+    var a=document.getElementById('auth-msg-admin'); if(a) a.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت) — جارٍ الفتح...';
+    var t=document.getElementById('auth-msg-teacher'); if(t) t.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت)...';
+    if(saved){
+      setTimeout(()=>{ try{ location.reload(); }catch{ showAppDirect(); } },300);
+    } else {
+      // no persistence possible — show app directly without reload
+      setTimeout(showAppDirect,150);
+    }
   }
   function attach(){
     var btnAdmin=document.getElementById('btn-admin-submit');
