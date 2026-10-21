@@ -514,6 +514,8 @@ function initAuthHandlers() {
           if (forNameEl2) forNameEl2.textContent = name2;
           if (codeEl2) { codeEl2.textContent = code2; codeEl2.style.display=''; }
           if (box2) { box2.classList.remove('hidden'); box2.style.display='block'; box2.removeAttribute('hidden'); }
+          // fill link
+          try{ var _linkEl=document.getElementById('gen-link'); var _wrap=document.getElementById('gen-link-wrap'); if(_linkEl && _wrap){ var _lnk=location.origin+location.pathname+'?code='+encodeURIComponent(code2); _linkEl.textContent=_lnk; _linkEl.href=_lnk; _wrap.classList.remove('hidden'); _wrap.style.display='block'; } }catch(e){}
           if (nameEl2) nameEl2.value = '';
           try { toast(t('toast_invite_created')); } catch(e3){}
           // also toast via DOM fallback if toast fails
@@ -528,7 +530,7 @@ function initAuthHandlers() {
           try {
             var p2 = null; try{ p2 = auth.getCurrentProfile(); }catch(e){}
             auth.createInvite({ forName: name2, createdBy: p2 ? p2.id : null }).then(function(saved){
-              if (saved && saved.code && codeEl2) { codeEl2.textContent = saved.code; try{ window._lastGeneratedCode=saved.code; }catch(e){} }
+              if (saved && saved.code && codeEl2) { codeEl2.textContent = saved.code; try{ window._lastGeneratedCode=saved.code; }catch(e){} try{ var _le=document.getElementById('gen-link'); if(_le){ var _ln=location.origin+location.pathname+'?code='+encodeURIComponent(saved.code); _le.textContent=_ln; _le.href=_ln; } }catch(e){} }
               try { refreshSupervisorData(); } catch(err3) {}
             }).catch(function(err){ console.warn('createInvite bg fail', err && err.message); try { refreshSupervisorData(); } catch(e){} });
           } catch(err4) { console.warn(err4); }
@@ -575,10 +577,27 @@ function initAuthHandlers() {
     } catch(eTop){ console.error('attachGenerateCode top error', eTop); }
   })();
 
-  try { document.getElementById('btn-logout').addEventListener('click', function(){ try{ auth.logout(); }catch(e){ location.reload(); } }); } catch(e){}
+  try {
+    var _logoutBtn=document.getElementById('btn-logout');
+    if(_logoutBtn) _logoutBtn.addEventListener('click', function(){
+      try{
+        // thorough clear for Samsung blocked storage
+        var _keys=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local'];
+        for(var i=0;i<_keys.length;i++){ var _k=_keys[i]; try{ localStorage.removeItem(_k);}catch(e){} try{ sessionStorage.removeItem(_k);}catch(e){} try{ document.cookie=_k+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} }
+        try{ window._fallbackSession=null; }catch(e){} try{ auth.clearSession(); }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
+        // hide panels immediately then redirect to clean URL
+        try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } }catch(e){}
+        setTimeout(function(){ try{ location.href=location.origin+location.pathname; }catch(e){ location.reload(); } },120);
+      } catch(e){ try{ auth.logout(); }catch(e2){ location.reload(); } }
+    });
+  } catch(e){}
   try {
     var _copyBtn=document.getElementById('btn-copy-code');
     if(_copyBtn) _copyBtn.addEventListener('click', function() { var elc=document.getElementById('gen-code'); if(elc && elc.textContent) copyText(elc.textContent); else toast(state.lang==='ar'?'لا يوجد كود للنسخ':'No code','error'); });
+  } catch(e){}
+  try {
+    var _copyLinkBtn=document.getElementById('btn-copy-link');
+    if(_copyLinkBtn) _copyLinkBtn.addEventListener('click', function(){ var _le=document.getElementById('gen-link'); if(_le && _le.textContent) copyText(_le.textContent); else { var _c=document.getElementById('gen-code'); if(_c && _c.textContent) copyText(location.origin+location.pathname+'?code='+encodeURIComponent(_c.textContent)); } });
   } catch(e){}
   try {
     var _shareBtn=document.getElementById('btn-share-code');
@@ -586,8 +605,9 @@ function initAuthHandlers() {
       var codeEl=document.getElementById('gen-code'); var nameEl=document.getElementById('gen-for-name');
       var code = codeEl ? codeEl.textContent : ''; var name = nameEl ? nameEl.textContent : '';
       if(!code){ toast(state.lang==='ar'?'لا يوجد كود للمشاركة':'No code','error'); return; }
-      var text = (state.lang === 'ar' ? 'رمز دعوة للأستاذ' : 'Invite code for') + ' ' + name + ': ' + code + ' — ' + location.origin;
-      if (navigator.share) { try { navigator.share({ title: 'ELT Tech-Assistant — Invite', text: text }); return; } catch(e2) {} } copyText(text);
+      var link = location.origin+location.pathname+'?code='+encodeURIComponent(code);
+      var text = (state.lang === 'ar' ? 'رمز دعوة للأستاذ' : 'Invite code for') + ' ' + name + ': ' + code + ' — رابط مباشر: ' + link;
+      if (navigator.share) { try { navigator.share({ title: 'ELT Tech-Assistant — Invite', text: text, url: link }); return; } catch(e2) {} } copyText(text + ' — ' + link);
     });
   } catch(e){}
 
