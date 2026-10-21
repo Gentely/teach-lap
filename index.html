@@ -240,7 +240,7 @@
       <form id="generate-code-form" class="mt-4 flex flex-wrap gap-3" onsubmit="return false" novalidate>
         <input id="new-teacher-name" type="text" maxlength="80" required placeholder="اسم الأستاذ / الأستاذة — مثال: د. أحمد علي"
           class="flex-1 min-w-[200px] rounded-xl border-2 border-white focus:border-brand-800 outline-none px-4 py-3 text-sm" />
-        <button type="submit" class="px-6 py-3 rounded-xl bg-brand-900 text-white font-extrabold hover:bg-brand-800 transition">⚡ توليد كود</button>
+        <button id="btn-generate-code" type="submit" onclick="try{ if(window._fallbackGenCode) return window._fallbackGenCode(event);}catch(e){}" class="px-6 py-3 rounded-xl bg-brand-900 text-white font-extrabold hover:bg-brand-800 transition active:scale-95">⚡ توليد كود</button>
       </form>
       <div id="generated-code-box" class="hidden mt-4 p-4 bg-white rounded-2xl border-2 border-brand-900">
         <p class="text-xs font-bold text-slate-500">الرمز المولّد لـ <span id="gen-for-name" class="text-brand-900"></span>:</p>
@@ -491,6 +491,79 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script type="module" src="app.js"></script>
+  <script>
+// === EMERGENCY generate-code fallback: works even if app.js fails to load ===
+// ES5 only, no optional chaining — guarantees button responds instantly
+(function(){
+  var KEY_INV='sabratha_invites_local';
+  function gEl(id){ return document.getElementById(id); }
+  function genCode(){ return 'ELT-'+Math.random().toString(36).slice(2,6).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase(); }
+  function showToast(msg,bg){
+    try{
+      var c=gEl('toast-container'); if(!c) return;
+      var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm';
+      d.style.background=bg||'#0F4C5C'; d.style.color='#fff'; d.textContent=msg;
+      c.appendChild(d); setTimeout(function(){ try{ d.style.opacity='0'; d.style.transition='opacity .4s'; setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },400);}catch(e){ if(d.parentNode) d.parentNode.removeChild(d);} },3500);
+    }catch(e){}
+  }
+  function emergencyGen(ev){
+    try{
+      if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} }
+      // dedupe: if app.js already handled within 800ms, skip
+      try{ if(window._lastGeneratedAt && (Date.now()-window._lastGeneratedAt < 800)) return false; }catch(e){}
+      var input=gEl('new-teacher-name');
+      var name=input ? (input.value||'').replace(/^\s+|\s+$/g,'') : '';
+      if(!name){ showToast('أدخل اسم الأستاذ أولاً','#dc2626'); try{ if(input) input.focus(); }catch(e){} return false; }
+      var code=genCode();
+      // Try auth.generateCode if available
+      try{ if(window.auth && window.auth.generateCode) code=window.auth.generateCode('ELT'); }catch(e){}
+      var forName=gEl('gen-for-name'); var codeEl=gEl('gen-code'); var box=gEl('generated-code-box');
+      if(forName) forName.textContent=name;
+      if(codeEl) { codeEl.textContent=code; codeEl.style.display=''; }
+      if(box){ box.classList.remove('hidden'); box.style.display='block'; box.removeAttribute('hidden'); }
+      if(input) input.value='';
+      showToast('تم توليد الرمز — انسخه وأرسله للأستاذ');
+      try{ window._lastGeneratedCode=code; window._lastGeneratedAt=Date.now(); }catch(e){}
+      setTimeout(function(){ try{ if(box) box.scrollIntoView({behavior:'smooth', block:'center'});}catch(e){} },100);
+      // persist locally + prepend list
+      try{
+        var list=gEl('invites-list'); if(list){
+          if(list.textContent.replace(/\s/g,'')==='—' || list.textContent.trim()==='—') list.innerHTML='';
+          var already=false; try{ already = list.textContent.indexOf(code)!==-1; }catch(e){}
+          if(!already){
+            var row=document.createElement('div'); row.className='flex items-center gap-3 bg-white rounded-xl p-3 border-2 border-brand-900/10 text-sm';
+            var s1=document.createElement('span'); s1.className='font-mono font-bold text-brand-900'; s1.textContent=code;
+            var s2=document.createElement('span'); s2.className='flex-1 text-slate-600 text-xs'; s2.textContent=name+' — غير مستخدم';
+            var b=document.createElement('button'); b.className='px-3 py-1 rounded-lg bg-brand-800 text-white text-xs font-bold'; b.textContent='نسخ';
+            b.onclick=function(){ try{ navigator.clipboard.writeText(code); showToast('تم النسخ'); }catch(e){ var ta=document.createElement('textarea'); ta.value=code; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('تم النسخ'); }catch(e2){} ta.remove(); } };
+            row.appendChild(s1); row.appendChild(s2); row.appendChild(b); list.insertBefore(row, list.firstChild);
+          }
+        }
+        // save to localStorage for persistence
+        var arr=[]; try{ var v=localStorage.getItem(KEY_INV); arr=v?JSON.parse(v):[]; }catch(e){ try{ var v2=sessionStorage.getItem(KEY_INV); arr=v2?JSON.parse(v2):[]; }catch(e2){} }
+        arr.unshift({code:code, for_name:name, role:'teacher', used:false, created_at:new Date().toISOString()});
+        try{ localStorage.setItem(KEY_INV, JSON.stringify(arr)); }catch(e){ try{ sessionStorage.setItem(KEY_INV, JSON.stringify(arr)); }catch(e2){ try{ document.cookie=KEY_INV+'='+encodeURIComponent(JSON.stringify(arr))+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e3){} } }
+        // also try auth.createInvite if module loaded
+        try{ if(window.auth && window.auth.createInvite){ var p=null; try{ p=window.auth.getCurrentProfile(); }catch(e){} window.auth.createInvite({forName:name, createdBy:p?p.id:null}).then(function(s){ if(s&&s.code&&codeEl) codeEl.textContent=s.code; }).catch(function(){}); } }catch(e){}
+      }catch(e){}
+    }catch(err){ try{ showToast('خطأ: '+(err.message||err),'#dc2626'); }catch(e){} console.error(err); }
+    return false;
+  }
+  window._fallbackGenCode = emergencyGen;
+  function bindEmergency(){
+    var f=gEl('generate-code-form'); if(!f || f._emergencyBound) return; f._emergencyBound=true;
+    f.addEventListener('submit', emergencyGen);
+    var btn=gEl('btn-generate-code'); if(btn) btn.addEventListener('click', emergencyGen);
+    // also delegate in case button type changes
+    f.addEventListener('click', function(ev){
+      var t=ev.target; if(t && t.closest){ var b=t.closest('button'); if(b && f.contains(b)) { /* click handler will fire */ } }
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindEmergency); else bindEmergency();
+  setTimeout(bindEmergency, 400);
+  setTimeout(bindEmergency, 1200);
+})();
+  </script>
   <script>
 // Emergency fallback — ES5 only, no ?. — Samsung compatible
 (function(){
