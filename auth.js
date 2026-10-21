@@ -52,12 +52,16 @@ export function getSession() {
 }
 export function setSession(profile) {
   if (!profile) { try{ safeRemove(SESSION_KEY); }catch{} currentProfile = null; try{ if(typeof window!=='undefined') window._fallbackSession=null; }catch{} return; }
+  // successful login/login clears logout flag so next reload can restore
+  try{ sessionStorage.removeItem('sabratha_logout_done'); }catch(e){}
+  try{ window.__logoutJustDone=false; }catch(e){}
   const normalized = { ...profile, full_name: profile.full_name || profile.fullName || '', academic_year: profile.academic_year || profile.academicYear || '', schedule: profile.schedule || '' };
   try{ safeSet(SESSION_KEY, JSON.stringify(normalized)); }catch(e){ console.warn('setSession fallback',e.message); try{ memStore[SESSION_KEY]=JSON.stringify(normalized); }catch{} }
   try{ if(typeof window!=='undefined') window._fallbackSession=normalized; }catch{}
   currentProfile = normalized;
 }
 export function clearSession() { setSession(null); }
+try{ if(typeof window!=='undefined') window.__clearAuthSession = clearSession; }catch(e){}
 export function getCurrentProfile() {
   if (currentProfile) return currentProfile;
   currentProfile = getSession();
@@ -76,6 +80,20 @@ function isMissingTableError(err) {
 }
 
 export async function restoreSession() {
+  // Final logout guard: if URL is ?logout=1 or head set flag or sessionStorage logout flag, wipe session and never restore
+  try{
+    var _isLogout = false;
+    if(typeof window!=='undefined'){
+      if(window.__logoutJustDone) _isLogout=true;
+      if(window.location && (window.location.href.indexOf('logout=1')>-1 || window.location.search.indexOf('logout=1')>-1)) _isLogout=true;
+      try{ if(sessionStorage.getItem('sabratha_logout_done')==='1') _isLogout=true; }catch(e){}
+    }
+    if(_isLogout){
+      clearSession();
+      try{ window._fallbackSession=null; }catch(e){}
+      return null;
+    }
+  }catch(e){}
   const sess = getSession();
   if (!sess) return null;
   // Try to verify in DB, but don't clear on DB error (table not yet created)

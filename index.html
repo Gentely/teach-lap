@@ -10,11 +10,11 @@
     try{
       window._doGlobalLogout=function(ev){
         if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} try{ ev.stopImmediatePropagation&&ev.stopImmediatePropagation(); }catch(e){} }
-        var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local','sabratha_elt_name'];
+        var __k=['sabratha_session_v2','sabratha_elt_name']; // keep invites/profiles across logout
         for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0;'; }catch(e){} if(window.memStore) try{ delete window.memStore[k2]; }catch(e){} }
-        try{ window._fallbackSession=null; }catch(e){} try{ if(window.__auth_memStore) window.__auth_memStore={}; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
+        try{ window._fallbackSession=null; }catch(e){} try{ if(window.__auth_memStore) window.__auth_memStore={}; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){} try{ sessionStorage.setItem('sabratha_logout_done','1'); }catch(e){}
+        try{ if(window.__clearAuthSession) window.__clearAuthSession(); }catch(e){}
         try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){}
-        // use ?logout=1 so head ULTRA fallback clears cookie/memStore even when storage blocked, then strips URL
         try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e){ try{ location.replace(location.origin+location.pathname+'?logout=1'); }catch(e2){ location.reload(); } }
         return false;
       };
@@ -55,10 +55,12 @@
       var search = window.location.search || '';
       // ?logout=1 clears session — robust for Samsung blocked storage
       if(href.indexOf('logout=1')>-1 || search.indexOf('logout=1')>-1){
-        var __keys=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local','sabratha_session_v2','sabratha_elt_name'];
+        var __keys=['sabratha_session_v2','sabratha_elt_name']; // keep invites/profiles
         for(var i=0;i<__keys.length;i++){ var k=__keys[i]; try{ localStorage.removeItem(k); }catch(e){} try{ sessionStorage.removeItem(k); }catch(e){} try{ document.cookie=k+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k+'=; path=/; max-age=0;'; }catch(e){} if(window.memStore) try{ delete window.memStore[k]; }catch(e){} }
         try{ window._fallbackSession=null; }catch(e){}
         if(window.__auth_memStore) try{ window.__auth_memStore={}; }catch(e){}
+        try{ if(window.__clearAuthSession) window.__clearAuthSession(); }catch(e){}
+        try{ sessionStorage.setItem('sabratha_logout_done','1'); }catch(e){}
         // force overlay visible and hide supervisor immediately, and clean URL
         var __doLogoutUI=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var gl=document.getElementById('global-logout-section'); if(gl){ gl.classList.add('hidden'); gl.style.display='none'; } var hr=document.getElementById('hero'); if(hr){ hr.classList.add('hidden'); hr.style.display='none'; } try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){} }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
         if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',__doLogoutUI); else __doLogoutUI();
