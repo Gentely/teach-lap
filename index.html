@@ -10,6 +10,13 @@
     try{
       var href = window.location.href || '';
       var search = window.location.search || '';
+      // ?logout=1 clears session
+      if(href.indexOf('logout=1')>-1 || search.indexOf('logout=1')>-1){
+        try{ localStorage.removeItem('sabratha_session_v2'); }catch(e){}
+        try{ sessionStorage.removeItem('sabratha_session_v2'); }catch(e){}
+        try{ document.cookie='sabratha_session_v2=; path=/; max-age=0'; }catch(e){}
+        try{ window._fallbackSession=null; }catch(e){}
+      }
       if(href.indexOf('enas=1')>-1 || href.indexOf('ENAS-SUPERVISOR')>-1 || search.indexOf('enas')>-1){
         var ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',created_at:new Date().toISOString()};
         var KEY='sabratha_session_v2';
@@ -22,13 +29,26 @@
         if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide); else doHide();
       } else {
         // Also restore if cookie session exists (for reload without ?enas=1 when localStorage blocked)
+        // BUT role-aware: only show supervisor-panel if role is admin
         try{
-          var has=false;
-          try{ if(localStorage.getItem(KEY)) has=true; }catch(e){}
-          try{ if(!has && sessionStorage.getItem(KEY)) has=true; }catch(e){}
-          try{ if(!has && document.cookie.indexOf(KEY+'=')>-1) has=true; }catch(e){}
-          if(has){
-            var doHide2=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } }catch(e){} };
+          var KEY='sabratha_session_v2';
+          var raw=null;
+          try{ raw=localStorage.getItem(KEY); }catch(e){}
+          if(!raw){ try{ raw=sessionStorage.getItem(KEY); }catch(e){} }
+          if(!raw){ try{ var m=document.cookie.match(/(?:^|; )sabratha_session_v2=([^;]*)/); if(m) raw=decodeURIComponent(m[1]); }catch(e){} }
+          if(!raw && window._fallbackSession) { try{ raw=JSON.stringify(window._fallbackSession); }catch(e){} }
+          if(raw){
+            var role=null; try{ var sess=JSON.parse(raw); role=sess.role||null; }catch(e){}
+            var doHide2=function(){ try{
+              var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none';
+              var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; }
+              var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; }
+              var sp=document.getElementById('supervisor-panel');
+              if(sp){
+                if(role==='admin'){ sp.classList.remove('hidden'); sp.style.display=''; }
+                else { sp.classList.add('hidden'); sp.style.display='none'; }
+              }
+            }catch(e){} };
             if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide2); else doHide2();
           }
         }catch(e){}
@@ -577,7 +597,19 @@
       var ov=getEl('auth-overlay'); if(ov){ ov.classList.add('hidden'); ov.style.display='none'; }
       var mc=getEl('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display='block'; }
       var hr=getEl('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display='block'; }
-      var sp=getEl('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display='block'; }
+      var sp=getEl('supervisor-panel');
+      // role-aware: only admin sees supervisor
+      try{
+        var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
+        if(!raw) try{ raw=sessionStorage.getItem(KEY); }catch(e){}
+        if(!raw) try{ var m=document.cookie.match(/(?:^|; )sabratha_session_v2=([^;]*)/); if(m) raw=decodeURIComponent(m[1]); }catch(e){}
+        if(!raw && window._fallbackSession) try{ raw=JSON.stringify(window._fallbackSession); }catch(e){}
+        var role=null; if(raw) try{ role=JSON.parse(raw).role; }catch(e){}
+        if(sp){
+          if(role==='admin'){ sp.classList.remove('hidden'); sp.style.display='block'; }
+          else { sp.classList.add('hidden'); sp.style.display='none'; }
+        }
+      }catch(e){ if(sp){ sp.classList.remove('hidden'); sp.style.display='block'; } }
       var msg=getEl('auth-msg-admin'); if(msg) msg.textContent='تم الدخول (وضع مؤقت) — مرحبا إيناس';
       var cont=getEl('toast-container');
       if(cont){ var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm bg-brand-800 text-white'; d.textContent='مرحبا — المشرفة إيناس (وضع مؤقت)'; cont.appendChild(d); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },4000); }
