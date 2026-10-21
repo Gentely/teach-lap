@@ -541,11 +541,12 @@
   <section id="global-logout-section" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
     <div class="bg-gradient-to-l from-brand-900 to-brand-800 rounded-3xl p-6 shadow-card text-center">
       <p class="text-sm font-bold text-white/90 mb-4">انتهيت؟ يمكنك الخروج من حسابك بأمان هنا — يعمل للمشرفة وللأستاذ</p>
-      <button id="btn-global-logout" type="button" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){ try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e2){ location.reload(); } }" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-brand-900 text-base font-extrabold shadow-lg hover:bg-gold-50 active:scale-[0.98] transition flex items-center justify-center gap-2 mx-auto">
+      <button id="btn-global-logout" type="button" onclick="try{ if(window._doGlobalLogout) return window._doGlobalLogout(event); }catch(e){} try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e2){ location.reload(); }" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-brand-900 text-base font-extrabold shadow-lg hover:bg-gold-50 active:scale-[0.98] transition flex items-center justify-center gap-2 mx-auto">
         <span class="text-xl">🚪</span>
         <span>خروج — تسجيل خروج</span>
       </button>
-      <p class="text-[11px] text-white/60 mt-3">سيتم مسح الجلسة والعودة لشاشة الدخول</p>
+      <a href="?logout=1" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="inline-block mt-3 text-xs text-white/80 underline hover:text-white">إذا لم يستجب الزر اضغط هنا للخروج الآمن (يعمل بدون جافاسكربت)</a>
+      <p class="text-[11px] text-white/60 mt-2">سيتم مسح الجلسة والعودة لشاشة الدخول</p>
     </div>
   </section>
 
