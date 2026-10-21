@@ -584,7 +584,7 @@ function initAuthHandlers() {
     if(_logoutBtn) _logoutBtn.addEventListener('click', function(ev){
       if(window._doGlobalLogout){ try{ return window._doGlobalLogout(ev); }catch(e){} }
       try{
-        var _keys=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local'];
+        var _keys=['sabratha_session_v2']; // keep invites/profiles so generated codes persist
         for(var i=0;i<_keys.length;i++){ var _k=_keys[i]; try{ localStorage.removeItem(_k);}catch(e){} try{ sessionStorage.removeItem(_k);}catch(e){} try{ document.cookie=_k+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} }
         try{ window._fallbackSession=null; }catch(e){} try{ auth.clearSession(); }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
         try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var gl=document.getElementById('global-logout-section'); if(gl){ gl.classList.add('hidden'); gl.style.display='none'; } }catch(e){}
