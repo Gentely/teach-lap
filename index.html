@@ -197,6 +197,49 @@
     </div>
   </footer>
 
+  <!-- Global Logout — single big button for E-ENGLISH gate -->
+  <section id="global-logout" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 hidden">
+    <div class="bg-white rounded-3xl border-2 border-brand-900/10 p-4 flex flex-wrap items-center justify-between gap-3">
+      <p class="text-sm font-bold text-slate-700">انتهيت؟ يمكنك الخروج وإعادة إدخال الكود لاحقاً.</p>
+      <button id="btn-logout" type="button" class="px-8 py-3 rounded-xl bg-brand-900 text-white font-black hover:bg-brand-800 active:scale-95 transition">🚪 خروج — تسجيل خروج</button>
+    </div>
+  </section>
+
+  <script>
+  (function(){
+    const STORAGE_KEY = 'sabratha_access_code';
+    const gate = document.getElementById('access-gate');
+    const globalLogout = document.getElementById('global-logout');
+    function syncLogoutVisibility(){
+      const hasAccess = (()=>{ try{ return !!(sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY) || document.cookie.includes('sabratha_access=1')); }catch(e){ return false; } })();
+      if(globalLogout) globalLogout.classList.toggle('hidden', !hasAccess);
+    }
+    // initial + after login
+    syncLogoutVisibility();
+    const _origSetItem = () => syncLogoutVisibility();
+    // poll slightly + hook gate hide
+    const obs = new MutationObserver(()=> syncLogoutVisibility());
+    if(gate) obs.observe(gate, {attributes:true, attributeFilter:['style']});
+    window.addEventListener('storage', syncLogoutVisibility);
+    setInterval(syncLogoutVisibility, 800);
+    const btn = document.getElementById('btn-logout');
+    if(btn) btn.addEventListener('click', ()=>{
+      try{ sessionStorage.removeItem(STORAGE_KEY); localStorage.removeItem(STORAGE_KEY);}catch(e){}
+      try{ document.cookie = 'sabratha_access=; Path=/; Max-Age=0'; }catch(e){}
+      // show gate again
+      if(gate){ gate.style.display='grid'; const inp=document.getElementById('access-code'); if(inp) inp.value=''; const m=document.getElementById('access-msg'); if(m) m.textContent='تم تسجيل الخروج'; }
+      syncLogoutVisibility();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+    // also sync after successful login (override gate display none)
+    const _origHide = () => syncLogoutVisibility();
+    // hook fetch verify success via gate hide
+    const check = setInterval(()=>{
+      if(gate && gate.style.display==='none') { syncLogoutVisibility(); }
+    }, 500);
+  })();
+  </script>
+
   <!-- Overlays -->
   <div id="loading" class="hidden fixed inset-0 z-50 bg-brand-900/70 backdrop-blur-sm grid place-items-center p-4">
     <div class="bg-white rounded-3xl p-8 text-center shadow-2xl max-w-sm w-full">
