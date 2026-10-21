@@ -112,20 +112,21 @@ function updateHeaderProfile() {
   const badge = document.getElementById('user-badge');
   const nameEl = document.getElementById('user-name');
   const roleEl = document.getElementById('user-role');
-  const logoutBtn = document.getElementById('btn-logout');
   const heroProfile = document.getElementById('hero-profile');
-  if (!p) { badge.classList.add('hidden'); badge.classList.remove('flex'); logoutBtn.classList.add('hidden'); if (heroProfile) heroProfile.classList.add('hidden'); return; }
-  badge.classList.remove('hidden'); badge.classList.add('flex'); logoutBtn.classList.remove('hidden');
-  nameEl.textContent = p.full_name || p.code;
-  roleEl.textContent = p.role === 'admin' ? (state.lang === 'ar' ? 'مشرفة' : 'Admin') : (state.lang === 'ar' ? 'أستاذ' : 'Teacher');
+  const globalSec = document.getElementById('global-logout-section');
+  if (!p) { if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if (heroProfile) heroProfile.classList.add('hidden'); if(globalSec){ globalSec.classList.add('hidden'); globalSec.style.display='none'; } return; }
+  if(badge){ badge.classList.remove('hidden'); badge.classList.add('flex'); }
+  if(nameEl) nameEl.textContent = p.full_name || p.code;
+  if(roleEl) roleEl.textContent = p.role === 'admin' ? (state.lang === 'ar' ? 'مشرفة' : 'Admin') : (state.lang === 'ar' ? 'أستاذ' : 'Teacher');
   if (heroProfile) {
     heroProfile.classList.remove('hidden');
-    document.getElementById('hero-welcome').textContent = p.role === 'admin' ? t('welcome_admin') : `${t('welcome_teacher')} ${p.full_name}`;
-    document.getElementById('hero-subjects').textContent = p.subjects ? `${state.lang === 'ar' ? 'المواد:' : 'Subjects:'} ${p.subjects}` : '';
-    document.getElementById('hero-years').textContent = p.academic_year ? `${state.lang === 'ar' ? 'السنوات:' : 'Years:'} ${p.academic_year}` : '';
+    const hw=document.getElementById('hero-welcome'); if(hw) hw.textContent = p.role === 'admin' ? t('welcome_admin') : `${t('welcome_teacher')} ${p.full_name}`;
+    const hs=document.getElementById('hero-subjects'); if(hs) hs.textContent = p.subjects ? `${state.lang === 'ar' ? 'المواد:' : 'Subjects:'} ${p.subjects}` : '';
+    const hy=document.getElementById('hero-years'); if(hy) hy.textContent = p.academic_year ? `${state.lang === 'ar' ? 'السنوات:' : 'Years:'} ${p.academic_year}` : '';
     const hsc = document.getElementById('hero-schedule'); if (hsc) hsc.textContent = p.schedule ? `${state.lang === 'ar' ? 'الأوقات:' : 'Schedule:'} ${p.schedule}` : '';
-    document.getElementById('footer-mycourses').textContent = p.subjects || p.academic_year || p.schedule || '';
+    const fm=document.getElementById('footer-mycourses'); if(fm) fm.textContent = p.subjects || p.academic_year || p.schedule || '';
   }
+  if(globalSec){ globalSec.classList.remove('hidden'); globalSec.style.display=''; }
 }
 
 function ownerId() {
@@ -579,14 +580,14 @@ function initAuthHandlers() {
   })();
 
   try {
-    var _logoutBtn=document.getElementById('btn-logout');
+    var _logoutBtn=document.getElementById('btn-global-logout');
     if(_logoutBtn) _logoutBtn.addEventListener('click', function(ev){
       if(window._doGlobalLogout){ try{ return window._doGlobalLogout(ev); }catch(e){} }
       try{
         var _keys=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local'];
         for(var i=0;i<_keys.length;i++){ var _k=_keys[i]; try{ localStorage.removeItem(_k);}catch(e){} try{ sessionStorage.removeItem(_k);}catch(e){} try{ document.cookie=_k+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} }
         try{ window._fallbackSession=null; }catch(e){} try{ auth.clearSession(); }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
-        try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } }catch(e){}
+        try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var gl=document.getElementById('global-logout-section'); if(gl){ gl.classList.add('hidden'); gl.style.display='none'; } }catch(e){}
         setTimeout(function(){ try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e){ location.reload(); } },80);
       } catch(e){ try{ auth.logout(); }catch(e2){ location.reload(); } }
     });

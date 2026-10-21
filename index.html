@@ -22,10 +22,9 @@
   })();
   function updateHeaderFallback(sess){
     try{
-      var badge=document.getElementById('user-badge'); var nameEl=document.getElementById('user-name'); var roleEl=document.getElementById('user-role'); var logoutBtn=document.getElementById('btn-logout'); var heroProfile=document.getElementById('hero-profile');
-      if(!sess || !sess.code){ if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if(logoutBtn){ logoutBtn.classList.add('hidden'); logoutBtn.style.display='none'; } if(heroProfile) heroProfile.classList.add('hidden'); return; }
+      var badge=document.getElementById('user-badge'); var nameEl=document.getElementById('user-name'); var roleEl=document.getElementById('user-role'); var heroProfile=document.getElementById('hero-profile'); var globalSec=document.getElementById('global-logout-section');
+      if(!sess || !sess.code){ if(badge){ badge.classList.add('hidden'); badge.classList.remove('flex'); } if(heroProfile) heroProfile.classList.add('hidden'); if(globalSec){ globalSec.classList.add('hidden'); globalSec.style.display='none'; } return; }
       if(badge){ badge.classList.remove('hidden'); badge.classList.add('flex'); }
-      if(logoutBtn){ logoutBtn.classList.remove('hidden'); logoutBtn.style.display=''; if(!logoutBtn._fallbackBound){ logoutBtn._fallbackBound=true; try{ logoutBtn.addEventListener('click', window._doGlobalLogout); }catch(e){} } }
       if(nameEl) nameEl.textContent=sess.full_name||sess.code||'';
       if(roleEl) roleEl.textContent=sess.role==='admin' ? 'مشرفة' : 'أستاذ';
       if(heroProfile){
@@ -35,15 +34,14 @@
         var hy=document.getElementById('hero-years'); if(hy) hy.textContent=sess.academic_year ? 'السنوات: '+sess.academic_year : '';
         var hsc=document.getElementById('hero-schedule'); if(hsc) hsc.textContent=sess.schedule ? 'الأوقات: '+sess.schedule : '';
       }
+      if(globalSec){ globalSec.classList.remove('hidden'); globalSec.style.display=''; }
     }catch(e){}
   }
-  // bind logout buttons as soon as DOM ready (head executes before body, so _fallbackBound would be null)
+  // bind global logout button as soon as DOM ready
   (function(){
     function bindLogoutBtns(){
       try{
-        var btns=['btn-logout','btn-logout-panel'];
-        for(var i=0;i<btns.length;i++){ var b=document.getElementById(btns[i]); if(b && !b._fallbackBound2){ b._fallbackBound2=true; b.addEventListener('click', window._doGlobalLogout); } }
-        var heroBtn=document.querySelector('#hero-profile button'); if(heroBtn && !heroBtn._fb2){ heroBtn._fb2=true; heroBtn.addEventListener('click', window._doGlobalLogout); }
+        var b=document.getElementById('btn-global-logout'); if(b && !b._fb2){ b._fb2=true; b.addEventListener('click', window._doGlobalLogout); }
       }catch(e){}
     }
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindLogoutBtns);
@@ -62,7 +60,7 @@
         try{ window._fallbackSession=null; }catch(e){}
         if(window.__auth_memStore) try{ window.__auth_memStore={}; }catch(e){}
         // force overlay visible and hide supervisor immediately, and clean URL
-        var __doLogoutUI=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var hr=document.getElementById('hero'); if(hr){ hr.classList.add('hidden'); hr.style.display='none'; } try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){} }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
+        var __doLogoutUI=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov){ ov.classList.remove('hidden'); ov.style.display='flex'; } var mc=document.getElementById('main-content'); if(mc){ mc.classList.add('hidden'); mc.style.display='none'; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.add('hidden'); sp.style.display='none'; } var gl=document.getElementById('global-logout-section'); if(gl){ gl.classList.add('hidden'); gl.style.display='none'; } var hr=document.getElementById('hero'); if(hr){ hr.classList.add('hidden'); hr.style.display='none'; } try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){} }catch(e){} try{ if(history.replaceState) history.replaceState(null,'',location.pathname); }catch(e){} };
         if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',__doLogoutUI); else __doLogoutUI();
         // stop further auto-restore for this load
         try{ window.__logoutJustDone=true; }catch(e){}
@@ -257,7 +255,6 @@
             <span id="user-name" class="font-bold"></span>
             <span id="user-role" class="px-2 py-0.5 rounded-full bg-gold-500 text-brand-900 font-extrabold text-[10px]"></span>
           </div>
-          <button id="btn-logout" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-xs font-bold">خروج</button>
           <a href="#classroom-section" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
             <span data-i18n="nav_classroom">إدارة الصف</span>
           </a>
@@ -286,7 +283,6 @@
             <p class="text-brand-100 text-xs mt-1" id="hero-subjects"></p>
             <p class="text-brand-100 text-xs" id="hero-years"></p>
             <p class="text-brand-100 text-xs" id="hero-schedule"></p>
-            <button type="button" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-brand-900 text-xs font-extrabold">🚪 خروج</button>
           </div>
         </div>
         <div class="lg:col-span-2">
@@ -343,10 +339,6 @@
       <div class="mt-6">
         <h4 class="font-extrabold text-brand-900 text-sm">الأكواد المولّدة</h4>
         <div id="invites-list" class="mt-3 space-y-2"></div>
-      </div>
-      <div class="mt-8 pt-4 border-t-2 border-brand-900/20 flex flex-wrap gap-3 items-center justify-between">
-        <p class="text-xs text-brand-900/70">انتهيت؟ يمكنك الخروج من حساب المشرفة هنا.</p>
-        <button id="btn-logout-panel" type="button" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="px-5 py-2.5 rounded-xl bg-white border-2 border-brand-900 text-brand-900 text-sm font-extrabold hover:bg-brand-50 transition">🚪 خروج — تسجيل خروج</button>
       </div>
     </div>
   </section>
@@ -544,6 +536,18 @@
       </details>
     </section>
   </main>
+
+  <!-- ======================= GLOBAL LOGOUT — single big button for both admin & teacher ======================= -->
+  <section id="global-logout-section" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="bg-gradient-to-l from-brand-900 to-brand-800 rounded-3xl p-6 shadow-card text-center">
+      <p class="text-sm font-bold text-white/90 mb-4">انتهيت؟ يمكنك الخروج من حسابك بأمان هنا — يعمل للمشرفة وللأستاذ</p>
+      <button id="btn-global-logout" type="button" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){ try{ location.href=location.origin+location.pathname+'?logout=1'; }catch(e2){ location.reload(); } }" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-brand-900 text-base font-extrabold shadow-lg hover:bg-gold-50 active:scale-[0.98] transition flex items-center justify-center gap-2 mx-auto">
+        <span class="text-xl">🚪</span>
+        <span>خروج — تسجيل خروج</span>
+      </button>
+      <p class="text-[11px] text-white/60 mt-3">سيتم مسح الجلسة والعودة لشاشة الدخول</p>
+    </div>
+  </section>
 
   <footer class="bg-brand-900 text-brand-100 mt-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
