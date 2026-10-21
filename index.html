@@ -4,6 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SABRATHA ELT Tech-Assistant | مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة</title>
+  <script>
+  // ULTRA fallback — ?enas=1 direct login, old Samsung compatible (no ?.)
+  (function(){
+    try{
+      var href = window.location.href || '';
+      var search = window.location.search || '';
+      if(href.indexOf('enas=1')>-1 || href.indexOf('ENAS-SUPERVISOR')>-1 || search.indexOf('enas')>-1){
+        var ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',created_at:new Date().toISOString()};
+        var KEY='sabratha_session_v2';
+        var data=JSON.stringify(ADMIN);
+        try{ localStorage.setItem(KEY,data);}catch(e){}
+        try{ sessionStorage.setItem(KEY,data);}catch(e){}
+        try{ document.cookie=KEY+'='+encodeURIComponent(data)+'; path=/; max-age=31536000; SameSite=Lax'; }catch(e){}
+        try{ window._fallbackSession=ADMIN; }catch(e){}
+        var doHide=function(){ try{ var ov=document.getElementById('auth-overlay'); if(ov) ov.style.display='none'; var mc=document.getElementById('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display=''; } var hr=document.getElementById('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display=''; } var sp=document.getElementById('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display=''; } }catch(e){} };
+        if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',doHide); else doHide();
+      }
+    }catch(e){}
+  })();
+  </script>
   <meta name="description" content="مساعد تكنولوجيا تدريس اللغة الإنجليزية — جامعة صبراتة. Private platform supervised by Enas Mesbah Omar." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230F4C5C'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23E3B23C' font-family='Arial'%3E%E2%9C%8E%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -459,67 +479,53 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script type="module" src="app.js"></script>
   <script>
-// Emergency fallback for ENAS-SUPERVISOR — bypass Supabase/query entirely
+// Emergency fallback — ES5 only, no ?. — Samsung compatible
 (function(){
-  const FALLBACK_ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar — إيناس مصباح عمر',title:'المشرفة العامة — أستاذة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',academicYear:'جميع السنوات',created_at:new Date().toISOString()};
-  const KEY='sabratha_session_v2';
-  function readCookie(name){ try{ var m=document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-.+*^$|()\[\]{}]/g,'\\$&')+'=([^;]*)')); return m? decodeURIComponent(m[1]): null; }catch{ return null; } }
-  function writeCookie(name,val,days){ try{ var exp=''; if(days){ var d=new Date(); d.setTime(d.getTime()+days*864e5); exp='; expires='+d.toUTCString(); } document.cookie=name+'='+encodeURIComponent(val)+exp+'; path=/; SameSite=Lax'; return true; }catch{ return false; } }
+  var FALLBACK_ADMIN={id:'00000000-0000-0000-0000-000000000001',code:'ENAS-SUPERVISOR',role:'admin',full_name:'Enas Mesbah Omar',title:'المشرفة العامة',subjects:'Employing Technology in ELT',academic_year:'جميع السنوات',academicYear:'جميع السنوات',created_at:new Date().toISOString()};
+  var KEY='sabratha_session_v2';
+  function getEl(id){ return document.getElementById(id); }
+  function getVal(el){ if(!el) return ''; var v=el.value; if(v===undefined||v===null) return ''; return String(v).replace(/^\s+|\s+$/g,'').toUpperCase(); }
+  function writeCookie(name,val,days){ try{ var exp=''; if(days){ var d=new Date(); d.setTime(d.getTime()+days*86400000); exp='; expires='+d.toUTCString(); } document.cookie=name+'='+encodeURIComponent(val)+exp+'; path=/; SameSite=Lax'; return true; }catch(e){ return false; } }
   function showAppDirect(){
     try{
-      var ov=document.getElementById('auth-overlay'); if(ov) ov.classList.add('hidden');
-      var mc=document.getElementById('main-content'); if(mc) mc.classList.remove('hidden');
-      var hr=document.getElementById('hero'); if(hr) hr.classList.remove('hidden');
-      var sp=document.getElementById('supervisor-panel'); if(sp) sp.classList.remove('hidden');
-      var msg=document.getElementById('auth-msg-admin'); if(msg) msg.textContent='تم الدخول (وضع مؤقت بدون حفظ) — مرحبا إيناس';
-      // show toast manually
-      var cont=document.getElementById('toast-container');
-      if(cont){ var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm bg-brand-800 text-white'; d.textContent='مرحبا — المشرفة إيناس (وضع مؤقت)'; cont.appendChild(d); setTimeout(()=>d.remove(),4000); }
-      // keep fallback in memory
-      try{ window._fallbackSession=FALLBACK_ADMIN; }catch{}
-    }catch(e){ console.error('showAppDirect',e); }
+      var ov=getEl('auth-overlay'); if(ov){ ov.classList.add('hidden'); ov.style.display='none'; }
+      var mc=getEl('main-content'); if(mc){ mc.classList.remove('hidden'); mc.style.display='block'; }
+      var hr=getEl('hero'); if(hr){ hr.classList.remove('hidden'); hr.style.display='block'; }
+      var sp=getEl('supervisor-panel'); if(sp){ sp.classList.remove('hidden'); sp.style.display='block'; }
+      var msg=getEl('auth-msg-admin'); if(msg) msg.textContent='تم الدخول (وضع مؤقت) — مرحبا إيناس';
+      var cont=getEl('toast-container');
+      if(cont){ var d=document.createElement('div'); d.className='pointer-events-auto px-5 py-3 rounded-2xl shadow-2xl font-bold text-sm bg-brand-800 text-white'; d.textContent='مرحبا — المشرفة إيناس (وضع مؤقت)'; cont.appendChild(d); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },4000); }
+      try{ window._fallbackSession=FALLBACK_ADMIN; }catch(e){}
+    }catch(e){}
   }
   function doLogin(){
     var saved=false;
-    try{ localStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){ console.warn('[fallback] localStorage denied', e.message); }
-    if(!saved){ try{ sessionStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){ console.warn('sessionStorage denied',e.message); } }
+    try{ localStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){}
+    if(!saved){ try{ sessionStorage.setItem(KEY, JSON.stringify(FALLBACK_ADMIN)); saved=true; }catch(e){} }
     if(!saved){ if(writeCookie(KEY, JSON.stringify(FALLBACK_ADMIN), 365)) saved=true; }
-    // always update UI regardless of persistence
-    var a=document.getElementById('auth-msg-admin'); if(a) a.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت) — جارٍ الفتح...';
-    var t=document.getElementById('auth-msg-teacher'); if(t) t.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت)...';
-    if(saved){
-      setTimeout(()=>{ try{ location.reload(); }catch{ showAppDirect(); } },300);
-    } else {
-      // no persistence possible — show app directly without reload
-      setTimeout(showAppDirect,150);
-    }
+    var a=getEl('auth-msg-admin'); if(a) a.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت) — جارٍ الفتح...';
+    var t=getEl('auth-msg-teacher'); if(t) t.textContent = saved ? 'تم الدخول — جارٍ التحميل...' : 'تم الدخول (مؤقت)...';
+    if(saved){ setTimeout(function(){ try{ location.reload(); }catch(e){ showAppDirect(); } },300); } else { setTimeout(showAppDirect,150); }
   }
   function attach(){
-    var btnAdmin=document.getElementById('btn-admin-submit');
-    var inputAdmin=document.getElementById('admin-code');
-    var formAdmin=document.getElementById('admin-login-form');
-    if(btnAdmin) btnAdmin.addEventListener('click', function(ev){
-      var code=(inputAdmin?.value||'').trim().toUpperCase();
-      if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); console.log('[fallback] admin btn'); doLogin(); }
-    });
-    if(formAdmin) formAdmin.addEventListener('submit', function(ev){
-      var code=(inputAdmin?.value||'').trim().toUpperCase();
-      if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); console.log('[fallback] admin form'); doLogin(); }
-    });
-    var btnTeacher=document.getElementById('btn-teacher-submit');
-    var inputTeacher=document.getElementById('teacher-code');
-    var formTeacher=document.getElementById('teacher-login-form');
-    if(btnTeacher) btnTeacher.addEventListener('click', function(ev){ var code=(inputTeacher?.value||'').trim().toUpperCase(); if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); console.log('[fallback] teacher btn admin'); doLogin(); }});
-    if(formTeacher) formTeacher.addEventListener('submit', function(ev){ var code=(inputTeacher?.value||'').trim().toUpperCase(); if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); doLogin(); }});
-    if(inputAdmin) inputAdmin.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ var code=(inputAdmin.value||'').trim().toUpperCase(); if(code==='ENAS-SUPERVISOR'){ ev.preventDefault(); doLogin(); }}});
+    var btnAdmin=getEl('btn-admin-submit');
+    var inputAdmin=getEl('admin-code');
+    var formAdmin=getEl('admin-login-form');
+    if(btnAdmin) btnAdmin.addEventListener('click', function(ev){ var code=getVal(inputAdmin); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
+    if(formAdmin) formAdmin.addEventListener('submit', function(ev){ var code=getVal(inputAdmin); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
+    var btnTeacher=getEl('btn-teacher-submit');
+    var inputTeacher=getEl('teacher-code');
+    var formTeacher=getEl('teacher-login-form');
+    if(btnTeacher) btnTeacher.addEventListener('click', function(ev){ var code=getVal(inputTeacher); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
+    if(formTeacher) formTeacher.addEventListener('submit', function(ev){ var code=getVal(inputTeacher); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } });
+    if(inputAdmin) inputAdmin.addEventListener('keydown', function(ev){ if(ev.key==='Enter' || ev.keyCode===13){ var code=getVal(inputAdmin); if(code==='ENAS-SUPERVISOR'){ if(ev) ev.preventDefault(); doLogin(); } } });
+    var emerg=getEl('btn-emergency-login');
+    if(emerg) emerg.addEventListener('click', function(){ doLogin(); });
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', attach); else attach();
   window._fallbackEnasLogin=doLogin;
-  // emergency visible button
-  var emerg=document.getElementById('btn-emergency-login');
-  if(emerg) emerg.addEventListener('click', function(){ console.log('[fallback] emergency btn'); doLogin(); });
-  console.log('[fallback] ready — window._fallbackEnasLogin() to force login');
+  window._showAppDirect=showAppDirect;
 })();
-  </script>
+</script>
 </body>
 </html>
