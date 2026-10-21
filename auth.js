@@ -30,24 +30,30 @@ export function generateCode(prefix = 'ELT') {
   return `${prefix}-${uid()}-${uid().slice(0, 4)}`;
 }
 
-// localStorage helpers
+// --- storage abstraction that survives localStorage "Access denied" on Samsung/Chrome ---
+let memStore = {};
+function safeGet(k){ try{ return localStorage.getItem(k); }catch{ try{ return sessionStorage.getItem(k); }catch{ try{ const m=document.cookie.match(new RegExp('(?:^|; )'+k.replace(/[-.+*^$|()\[\]{}]/g,'\\$&')+'=([^;]*)')); return m? decodeURIComponent(m[1]): null; }catch{ return memStore[k]||null; } } } }
+function safeSet(k,v){ try{ localStorage.setItem(k,v); return; }catch{} try{ sessionStorage.setItem(k,v); return; }catch{} try{ document.cookie=k+'='+encodeURIComponent(v)+'; path=/; max-age=31536000; SameSite=Lax'; memStore[k]=v; return; }catch{} memStore[k]=v; }
+function safeRemove(k){ try{ localStorage.removeItem(k); }catch{} try{ sessionStorage.removeItem(k); }catch{} try{ document.cookie=k+'=; path=/; max-age=0'; }catch{} delete memStore[k]; }
+// expose fallback session for direct UI mode
+if(typeof window!=='undefined') window._fallbackSession = window._fallbackSession || null;
 function getLocalInvites() {
-  try { return JSON.parse(localStorage.getItem(LOCAL_INVITES_KEY) || '[]'); } catch { return []; }
+  try { const v=safeGet(LOCAL_INVITES_KEY); return v? JSON.parse(v): []; } catch { return []; }
 }
-function setLocalInvites(arr) { localStorage.setItem(LOCAL_INVITES_KEY, JSON.stringify(arr)); }
+function setLocalInvites(arr) { try{ safeSet(LOCAL_INVITES_KEY, JSON.stringify(arr)); }catch{} }
 function getLocalProfiles() {
-  try { return JSON.parse(localStorage.getItem(LOCAL_PROFILES_KEY) || '[]'); } catch { return []; }
+  try { const v=safeGet(LOCAL_PROFILES_KEY); return v? JSON.parse(v): []; } catch { return []; }
 }
-function setLocalProfiles(arr) { localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(arr)); }
+function setLocalProfiles(arr) { try{ safeSet(LOCAL_PROFILES_KEY, JSON.stringify(arr)); }catch{} }
 
 export function getSession() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
+  try { const v=safeGet(SESSION_KEY) || (typeof window!=='undefined' && window._fallbackSession ? JSON.stringify(window._fallbackSession): null); return v? JSON.parse(v): null; } catch { return (typeof window!=='undefined' && window._fallbackSession) ? window._fallbackSession : null; }
 }
 export function setSession(profile) {
-  if (!profile) { localStorage.removeItem(SESSION_KEY); currentProfile = null; return; }
-  // normalize for consistency
+  if (!profile) { try{ safeRemove(SESSION_KEY); }catch{} currentProfile = null; try{ if(typeof window!=='undefined') window._fallbackSession=null; }catch{} return; }
   const normalized = { ...profile, full_name: profile.full_name || profile.fullName || '', academic_year: profile.academic_year || profile.academicYear || '' };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(normalized));
+  try{ safeSet(SESSION_KEY, JSON.stringify(normalized)); }catch(e){ console.warn('setSession fallback',e.message); try{ memStore[SESSION_KEY]=JSON.stringify(normalized); }catch{} }
+  try{ if(typeof window!=='undefined') window._fallbackSession=normalized; }catch{}
   currentProfile = normalized;
 }
 export function clearSession() { setSession(null); }
