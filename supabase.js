@@ -90,11 +90,11 @@ export async function fetchProfiles({ role = null } = {}) {
   return { data: data || [], error };
 }
 
-export async function createProfile({ code, role, fullName, title, subjects, academicYear, email, createdBy }) {
+export async function createProfile({ code, role, fullName, title, subjects, academicYear, schedule, email, createdBy }) {
   const db = requireClient();
   return safe(
     db.from(SUPABASE_TABLES.profiles).insert({
-      code, role, full_name: fullName, title: title || null, subjects: subjects || null, academic_year: academicYear || null, email: email || null, created_by: createdBy || null,
+      code, role, full_name: fullName, title: title || null, subjects: subjects || null, academic_year: academicYear || null, schedule: schedule || null, email: email || null, created_by: createdBy || null,
     }).select().single()
   );
 }
@@ -106,6 +106,7 @@ export async function updateProfile(code, updates) {
   if (updates.title != null) patch.title = updates.title;
   if (updates.subjects != null) patch.subjects = updates.subjects;
   if (updates.academicYear != null) patch.academic_year = updates.academicYear;
+  if (updates.schedule != null) patch.schedule = updates.schedule;
   if (updates.email != null) patch.email = updates.email;
   return safe(db.from(SUPABASE_TABLES.profiles).update(patch).eq('code', code).select().single());
 }

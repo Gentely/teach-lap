@@ -19,13 +19,22 @@
         var hw=document.getElementById('hero-welcome'); if(hw) hw.textContent=sess.role==='admin' ? 'مرحبًا — المشرفة إيناس' : 'مرحبًا، '+(sess.full_name||'');
         var hs=document.getElementById('hero-subjects'); if(hs) hs.textContent=sess.subjects ? 'المواد: '+sess.subjects : '';
         var hy=document.getElementById('hero-years'); if(hy) hy.textContent=sess.academic_year ? 'السنوات: '+sess.academic_year : '';
+        var hsc=document.getElementById('hero-schedule'); if(hsc) hsc.textContent=sess.schedule ? 'الأوقات: '+sess.schedule : '';
       }
+      // expose global logout for inline onclick
+      try{
+        window._doGlobalLogout=function(ev){
+          if(ev){ try{ ev.preventDefault(); }catch(e){} try{ ev.stopPropagation(); }catch(e){} }
+          var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local']; for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0;'; }catch(e){} }
+          try{ window._fallbackSession=null; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){}
+          try{ if(typeof updateHeaderFallback==='function') updateHeaderFallback(null); }catch(e){}
+          try{ location.href=location.origin+location.pathname; }catch(e){ location.reload(); }
+          return false;
+        };
+      }catch(e){}
       if(logoutBtn && !logoutBtn._fallbackBound){
         logoutBtn._fallbackBound=true;
-        logoutBtn.addEventListener('click', function(){
-          var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local']; for(var i=0;i<__k.length;i++){ var k2=__k[i]; try{ localStorage.removeItem(k2);}catch(e){} try{ sessionStorage.removeItem(k2);}catch(e){} try{ document.cookie=k2+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'; }catch(e){} }
-          try{ window._fallbackSession=null; }catch(e){} try{ window.__logoutJustDone=true; }catch(e){} try{ location.href=location.origin+location.pathname; }catch(e){ location.reload(); }
-        });
+        logoutBtn.addEventListener('click', window._doGlobalLogout);
       }
     }catch(e){}
   }
@@ -213,6 +222,8 @@
           class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
         <input id="ob-years" type="text" maxlength="200" placeholder="السنوات الدراسية"
           class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
+        <input id="ob-schedule" type="text" maxlength="200" placeholder="أوقات المحاضرات الأسبوعية — مثال: الأحد 10-12، الثلاثاء 14-16"
+          class="w-full rounded-xl border-2 border-slate-200 focus:border-brand-600 outline-none px-4 py-2.5 text-sm" />
         <button type="submit" class="w-full py-3 rounded-xl bg-brand-800 text-white font-extrabold">حفظ وفتح صفحتي</button>
       </form>
     </div>
@@ -234,7 +245,7 @@
             <span id="user-name" class="font-bold"></span>
             <span id="user-role" class="px-2 py-0.5 rounded-full bg-gold-500 text-brand-900 font-extrabold text-[10px]"></span>
           </div>
-          <button id="btn-logout" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-xs font-bold">خروج</button>
+          <button id="btn-logout" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-xs font-bold">خروج</button>
           <a href="#classroom-section" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition text-sm font-semibold">
             <span data-i18n="nav_classroom">إدارة الصف</span>
           </a>
@@ -262,6 +273,8 @@
             <p class="font-extrabold" id="hero-welcome"></p>
             <p class="text-brand-100 text-xs mt-1" id="hero-subjects"></p>
             <p class="text-brand-100 text-xs" id="hero-years"></p>
+            <p class="text-brand-100 text-xs" id="hero-schedule"></p>
+            <button type="button" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-brand-900 text-xs font-extrabold">🚪 خروج</button>
           </div>
         </div>
         <div class="lg:col-span-2">
@@ -321,7 +334,7 @@
       </div>
       <div class="mt-8 pt-4 border-t-2 border-brand-900/20 flex flex-wrap gap-3 items-center justify-between">
         <p class="text-xs text-brand-900/70">انتهيت؟ يمكنك الخروج من حساب المشرفة هنا.</p>
-        <button id="btn-logout-panel" type="button" onclick="try{ var __k=['sabratha_session_v2','sabratha_invites_local','sabratha_profiles_local']; for(var i=0;i<__k.length;i++){var kk=__k[i]; try{ localStorage.removeItem(kk);}catch(e){} try{ sessionStorage.removeItem(kk);}catch(e){} try{ document.cookie=kk+'=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';}catch(e){}} try{ window._fallbackSession=null; window.__logoutJustDone=true; }catch(e){} location.href=location.origin+location.pathname; }catch(e){ location.reload(); }" class="px-5 py-2.5 rounded-xl bg-white border-2 border-brand-900 text-brand-900 text-sm font-extrabold hover:bg-brand-50 transition">🚪 خروج — تسجيل خروج المشرفة</button>
+        <button id="btn-logout-panel" type="button" onclick="try{ window._doGlobalLogout&&window._doGlobalLogout(event)}catch(e){}" class="px-5 py-2.5 rounded-xl bg-white border-2 border-brand-900 text-brand-900 text-sm font-extrabold hover:bg-brand-50 transition">🚪 خروج — تسجيل خروج</button>
       </div>
     </div>
   </section>
@@ -776,13 +789,18 @@
             // find invite
             try{ var iRaw=null; try{ iRaw=localStorage.getItem(INV_KEY); }catch(e){ try{ iRaw=sessionStorage.getItem(INV_KEY); }catch(e2){} } var invs=iRaw?JSON.parse(iRaw):[]; for(var k=0;k<invs.length;k++){ if((invs[k].code||'').toUpperCase()===code){ invite=invs[k]; break; } } }catch(e){}
             if(!invite){
-              if(msgEl){ msgEl.textContent='رمز غير صحيح — تأكد من الرمز أو اطلب رمزًا جديدًا من المشرفة إيناس.'; msgEl.style.color='#dc2626'; }
-              showToast2('رمز غير صحيح','#dc2626'); if(btn){ btn.disabled=false; btn.textContent='دخول / تفعيل الرمز'; } return;
+              // fallback: allow ELT- codes generated on admin device but not synced to this device (localStorage isolated)
+              if(code.indexOf('ELT-')===0 && code.length>=7){
+                invite={code:code, for_name: (function(){ try{ var fe=gEl2('t-fullname'); return fe? (fe.value||'').trim(): ''; }catch(e){ return ''; } })() || code, role:'teacher'};
+              } else {
+                if(msgEl){ msgEl.textContent='رمز غير صحيح — تأكد من الرمز أو اطلب رمزًا جديدًا من المشرفة إيناس.'; msgEl.style.color='#dc2626'; }
+                showToast2('رمز غير صحيح','#dc2626'); if(btn){ btn.disabled=false; btn.textContent='دخول / تفعيل الرمز'; } return;
+              }
             }
             // create profile from invite
             var fnEl=gEl2('t-fullname'); var titleEl=gEl2('t-title'); var subjEl=gEl2('t-subjects'); var yrsEl=gEl2('t-years');
             var fn = fnEl? fnEl.value.replace(/^\s+|\s+$/g,'') : ''; var ttl = titleEl? titleEl.value.replace(/^\s+|\s+$/g,'') : ''; var subj = subjEl? subjEl.value.replace(/^\s+|\s+$/g,'') : ''; var yrs = yrsEl? yrsEl.value.replace(/^\s+|\s+$/g,'') : '';
-            var newProf={id:'local-'+Date.now(), code:code, role:'teacher', full_name: fn||invite.for_name||code, fullName: fn||invite.for_name||code, title: ttl||'', subjects: subj||'', academic_year: yrs||'', academicYear: yrs||'', created_at:new Date().toISOString()};
+            var newProf={id:'local-'+Date.now(), code:code, role:'teacher', full_name: fn||invite.for_name||code, fullName: fn||invite.for_name||code, title: ttl||'', subjects: subj||'', academic_year: yrs||'', academicYear: yrs||'', schedule:'', created_at:new Date().toISOString()};
             // save profile
             try{ var all=[]; try{ var v=localStorage.getItem(PROF_KEY); all=v?JSON.parse(v):[]; }catch(e){} all.push(newProf); try{ localStorage.setItem(PROF_KEY, JSON.stringify(all)); }catch(e){ try{ sessionStorage.setItem(PROF_KEY, JSON.stringify(all)); }catch(e2){} } }catch(e){}
             // mark invite used

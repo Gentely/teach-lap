@@ -27,6 +27,7 @@ create table if not exists public.profiles (
   title         text, -- الصفة: أستاذ، محاضرة، معيد...
   subjects      text, -- المواد التي يدرسها (comma-separated)
   academic_year text, -- السنوات الدراسية (e.g. "السنة الثانية، الثالثة")
+  schedule      text, -- أوقات المحاضرات الأسبوعية
   email         text,
   created_at    timestamptz not null default now(),
   created_by    uuid references public.profiles(id) on delete set null
@@ -54,6 +55,10 @@ alter table public.lectures
   add column if not exists owner_id uuid references public.profiles(id) on delete cascade;
 alter table public.students
   add column if not exists owner_id uuid references public.profiles(id) on delete cascade;
+
+-- add schedule column if upgrading from old version
+alter table public.profiles
+  add column if not exists schedule text;
 
 -- Also keep course ownership consistent: students owner derived from course owner
 -- but we store owner_id directly for fast filtering.

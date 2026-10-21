@@ -123,7 +123,8 @@ function updateHeaderProfile() {
     document.getElementById('hero-welcome').textContent = p.role === 'admin' ? t('welcome_admin') : `${t('welcome_teacher')} ${p.full_name}`;
     document.getElementById('hero-subjects').textContent = p.subjects ? `${state.lang === 'ar' ? 'المواد:' : 'Subjects:'} ${p.subjects}` : '';
     document.getElementById('hero-years').textContent = p.academic_year ? `${state.lang === 'ar' ? 'السنوات:' : 'Years:'} ${p.academic_year}` : '';
-    document.getElementById('footer-mycourses').textContent = p.subjects || p.academic_year || '';
+    const hsc = document.getElementById('hero-schedule'); if (hsc) hsc.textContent = p.schedule ? `${state.lang === 'ar' ? 'الأوقات:' : 'Schedule:'} ${p.schedule}` : '';
+    document.getElementById('footer-mycourses').textContent = p.subjects || p.academic_year || p.schedule || '';
   }
 }
 
@@ -616,14 +617,15 @@ function initAuthHandlers() {
   document.getElementById('onboarding-form').addEventListener('submit', async e => {
     e.preventDefault();
     const p = auth.getCurrentProfile(); if (!p) return;
-    const updates = { fullName: document.getElementById('ob-fullname').value.trim(), title: document.getElementById('ob-title').value.trim(), subjects: document.getElementById('ob-subjects').value.trim(), academicYear: document.getElementById('ob-years').value.trim() };
+    const updates = { fullName: document.getElementById('ob-fullname').value.trim(), title: document.getElementById('ob-title').value.trim(), subjects: document.getElementById('ob-subjects').value.trim(), academicYear: document.getElementById('ob-years').value.trim(), schedule: (document.getElementById('ob-schedule')?.value || '').trim() };
     if (!updates.fullName) { toast(t('err_code_required'), 'error'); return; }
-    try { await auth.updateProfile({ code: p.code, updates }); toast(t('toast_profile_saved')); document.getElementById('onboarding-modal').classList.add('hidden'); updateHeaderProfile(); } catch (err) { toast(err.message, 'error'); }
+    if (!updates.title || !updates.subjects || !updates.academicYear || !updates.schedule) { toast(state.lang==='ar'?'أكمل كل الحقول — الصفة، المواد، السنوات، الأوقات':'Please fill all fields — title, subjects, years, schedule','error'); return; }
+    try { await auth.updateProfile({ code: p.code, updates }); toast(t('toast_profile_saved')); document.getElementById('onboarding-modal').classList.add('hidden'); updateHeaderProfile(); classroomSetCourse().catch(()=>{}); } catch (err) { toast(err.message, 'error'); }
   }); } catch(e){ console.warn('onboarding handler', e.message); }
 }
 
 function checkProfileComplete(p) {
-  return p && p.full_name && p.title && p.subjects && p.academic_year;
+  return p && p.full_name && p.title && p.subjects && p.academic_year && p.schedule;
 }
 
 function onLoginSuccess(profile) {
@@ -636,6 +638,7 @@ function onLoginSuccess(profile) {
     document.getElementById('ob-title').value = p.title || '';
     document.getElementById('ob-subjects').value = p.subjects || '';
     document.getElementById('ob-years').value = p.academic_year || '';
+    const sched = document.getElementById('ob-schedule'); if (sched) sched.value = p.schedule || '';
     document.getElementById('onboarding-modal').classList.remove('hidden');
   }
   // Load private data
