@@ -92,6 +92,22 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return fail(res, 405, 'Only POST allowed', 'METHOD_NOT_ALLOWED');
 
+  // --- Simple access gate: must have valid cookie or header from /api/verify ---
+  const accessCode = (process.env.ACCESS_CODE || 'E-ENGLISH').trim();
+  const cookie = req.headers.cookie || '';
+  const headerCode = String(req.headers['x-access-code'] || '').trim();
+  const hasCookie = cookie.includes('sabratha_access=1');
+  const headerOk = headerCode.toUpperCase() === accessCode.toUpperCase();
+  if (!hasCookie && !headerOk) {
+    // also allow code sent in body as fallback (for old clients)
+    let bodyTmp = req.body;
+    if (typeof bodyTmp === 'string') { try { bodyTmp = JSON.parse(bodyTmp); } catch {} }
+    const bodyCode = String(bodyTmp?.accessCode || '').trim();
+    if (bodyCode.toUpperCase() !== accessCode.toUpperCase()) {
+      return fail(res, 403, 'غير مصرح — أدخل كود الدخول E-ENGLISH أولاً.', 'NOT_AUTHORIZED');
+    }
+  }
+
   const key = getKey();
   if (!key) return fail(res, 500, 'GEMINI_API_KEY not configured on server. Add it in Vercel → Settings → Environment Variables.', 'MISSING_API_KEY');
 
