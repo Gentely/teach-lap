@@ -7,9 +7,22 @@
 -- أسهل: نأخذ معرف المشرفة الحالية ونستخدمه كمدرس افتراضي، أو نستخدم username كنص
 -- هنا نضيف عمود teacher_username اختياري لمقررات إيناس بدون كسر RLS الحالي
 
--- 1) إضافة عمود اختياري لربط المقرر بالأستاذة بالاسم (لا يلغي teacher_id القديم)
+-- 1) إضافة أعمدة ناقصة إن لم تكن موجودة (إصلاح للمشاريع التي لم تشغل step5_lms كاملاً)
 alter table public.courses add column if not exists teacher_username text;
+alter table public.courses add column if not exists code text;
+alter table public.courses add column if not exists description text;
 create index if not exists idx_courses_teacher_username on public.courses(teacher_username);
+-- تعبئة code للصفوف القديمة التي كانت null
+update public.courses set code = 'TMP-' || substr(id::text,1,8) where code is null;
+-- ضمان القيد الفريد teacher_id+code
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'courses_teacher_id_code_key') then
+    begin
+      alter table public.courses add constraint courses_teacher_id_code_key unique (teacher_id, code);
+    exception when duplicate_table then null;
+    end;
+  end if;
+end $$;
 
 -- 2) سياسة إضافية للسماح للخدمة بالقراءة إذا تحقق teacher_username
 -- نوسع سياسة courses_select لتشمل teacher_username
