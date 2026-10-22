@@ -1,9 +1,15 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 
 export default function Header() {
   const { locale, setLocale, t } = useI18n();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/me").then(r => r.json()).then(j => { if (j.success) setRole(j.data.role); }).catch(()=>{});
+  }, []);
 
   return (
     <header className="bg-[#0B3C49] text-white shadow">
@@ -17,21 +23,19 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/admin"
-            className="hidden sm:inline-flex items-center gap-1.5 bg-[#E3B23C] text-[#0B3C49] rounded-xl px-3 py-2 text-xs font-black hover:bg-[#d9a62e] transition"
-          >
-            🛡️ {locale === "ar" ? "لوحة المشرفة" : "Admin"}
+          <Link href="/courses" className="hidden sm:inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs font-black hover:bg-white/20">
+            {locale === "ar" ? "مقرراتي" : "My Courses"} {role && <span className="hidden lg:inline text-[10px] opacity-70">({role})</span>}
           </Link>
+
+          {role === "admin" && (
+            <Link href="/admin" className="hidden sm:inline-flex items-center gap-1.5 bg-[#E3B23C] text-[#0B3C49] rounded-xl px-3 py-2 text-xs font-black hover:bg-[#d9a62e]">
+              🛡️ {locale === "ar" ? "لوحة المشرفة" : "Admin"}
+            </Link>
+          )}
 
           <label className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-xl px-3 py-2">
             <span className="text-xs hidden sm:inline opacity-80">Language</span>
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as "en" | "ar")}
-              className="bg-transparent text-sm font-bold outline-none cursor-pointer"
-              aria-label="Language switcher"
-            >
+            <select value={locale} onChange={(e) => setLocale(e.target.value as "en" | "ar")} className="bg-transparent text-sm font-bold outline-none cursor-pointer" aria-label="Language switcher">
               <option value="en" className="text-black">English</option>
               <option value="ar" className="text-black">العربية</option>
             </select>

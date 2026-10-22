@@ -73,7 +73,6 @@ ${text}
 }
 
 export async function POST(req: NextRequest) {
-  // 1) التحقق من تسجيل الدخول والقائمة البيضاء أولاً — قبل أي معالجة ثقيلة
   const cookieStore = cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key-for-build";
@@ -93,10 +92,14 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.email) return NextResponse.json({ success: false, error: { message: "Unauthorized — please sign in." } }, { status: 401 });
-  const { data: allowed } = await supabase.from("allowed_users").select("email").eq("email", user.email.toLowerCase()).maybeSingle();
+  const { data: allowed } = await supabase.from("allowed_users").select("email, role").eq("email", user.email.toLowerCase()).maybeSingle();
   if (!allowed) return NextResponse.json({ success: false, error: { message: `Email ${user.email} is not on the invited list.` } }, { status: 403 });
 
-  // 2) قراءة المدخلات — ندعم JSON القديم و FormData الجديد مع الملفات
+  // الطلاب لا يمكنهم استخدام توليد Gemini — فقط teacher/admin
+  if (allowed.role === "student") {
+    return NextResponse.json({ success: false, error: { message: "Forbidden — students cannot use Gemini generation. Only teachers can generate. / الطلاب لا يمكنهم استخدام التوليد" } }, { status: 403 });
+  }
+
   const contentType = req.headers.get("content-type") || "";
   let title = "";
   let pastedText = "";
@@ -109,12 +112,10 @@ export async function POST(req: NextRequest) {
       title = String(formData.get("title") || "").trim().slice(0, 200);
       pastedText = String(formData.get("text") || "").trim();
       outputLanguage = String(formData.get("outputLanguage") || "en").trim();
-      // جميع الملفات تحت مفتاح "files" (متعدد)
       const allFiles = formData.getAll("files");
       for (const f of allFiles) {
         if (f instanceof File && f.name && f.size > 0) files.push(f);
       }
-      // دعم اسم حقل مفرد "file" للتوافق
       const single = formData.get("file");
       if (files.length === 0 && single instanceof File && single.name) files.push(single);
     } else {
@@ -130,7 +131,6 @@ export async function POST(req: NextRequest) {
 
   if (!["ar", "en", "bilingual"].includes(outputLanguage)) outputLanguage = "en";
 
-  // 3) استخراج النص من الملفات على الخادم فقط — لا نرسل الملفات الثنائية إلى Gemini أبداً
   let extractedCombined = "";
   let extractMeta: any[] = [];
   if (files.length > 0) {
@@ -139,15 +139,11 @@ export async function POST(req: NextRequest) {
       extractedCombined = combinedText;
       extractMeta = results.map((r) => ({ fileName: r.fileName, fileType: r.fileType, chars: r.chars }));
     } catch (e: any) {
-      // خطأ في استخراج ملف معين — نرجعه للواجهة بوضوح
       return NextResponse.json({ success: false, error: { message: e?.message || "File extraction failed" } }, { status: 400 });
     }
   }
 
-  // 4) دمج النص الملصق + المستخرج من الملفات
   let finalText = [pastedText, extractedCombined].filter(Boolean).join("\n\n").trim();
-
-  // تنظيف بسيط: إزالة أسطر فارغة كثيرة
   finalText = finalText.replace(/\n{3,}/g, "\n\n").trim();
 
   if (finalText.length < 40) {
@@ -160,7 +156,6 @@ export async function POST(req: NextRequest) {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!geminiKey) return NextResponse.json({ success: false, error: { message: "GEMINI_API_KEY not configured on server" } }, { status: 500 });
 
-  // 5) استدعاء Gemini بالنص المستخرج فقط — المفتاح يبقى على الخادم
   async function callGemini(model: string) {
     const payload = {
       contents: [{ role: "user", parts: [{ text: buildPrompt({ title, text: finalText, outputLanguage }) }] }],
@@ -197,8 +192,6 @@ export async function POST(req: NextRequest) {
       }
       if (data.course_applications && !data.libyan_applications) data.libyan_applications = data.course_applications;
 
-      // === الخطوة الثالثة: حفظ تلقائي في lectures_history ===
-      // نولّد Markdown ثم نحفظ (professor_id = auth.uid())
       let savedId: string | null = null;
       try {
         const markdown = generateMarkdown(data, {
