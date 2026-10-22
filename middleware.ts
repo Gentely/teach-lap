@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-// المسارات العامة — لا تحتاج حماية
-const PUBLIC_PATHS = ["/login", "/teacher-login", "/student-login", "/auth", "/_next", "/favicon.ico"];
+// المسارات العامة — لا تحتاج حماية (مهم: /api/auth يجب أن تبقى مفتوحة ليعمل تسجيل الدخول)
+const PUBLIC_PATHS = ["/login", "/teacher-login", "/student-login", "/auth", "/api/auth", "/_next", "/favicon.ico"];
 
 // للتحقق من جلسة الأستاذة — نسخة Edge-Compatible (Web Crypto لا تحتاج Node crypto)
 function getTeacherSecret(): string {
