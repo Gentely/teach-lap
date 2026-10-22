@@ -73,31 +73,31 @@ ${text}
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key-for-build";
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-        } catch {}
-      },
-    },
-  });
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) return NextResponse.json({ success: false, error: { message: "Unauthorized — please sign in." } }, { status: 401 });
-  const { data: allowed } = await supabase.from("allowed_users").select("email, role").eq("email", user.email.toLowerCase()).maybeSingle();
-  if (!allowed) return NextResponse.json({ success: false, error: { message: `Email ${user.email} is not on the invited list.` } }, { status: 403 });
-
-  // الطلاب لا يمكنهم استخدام توليد Gemini — فقط teacher/admin
-  if (allowed.role === "student") {
-    return NextResponse.json({ success: false, error: { message: "Forbidden — students cannot use Gemini generation. Only teachers can generate. / الطلاب لا يمكنهم استخدام التوليد" } }, { status: 403 });
+  // تحقق من الصلاحية — يدعم الجلسة الجديدة (teacher_session) والقديمة (Supabase)
+  let authUser: { id: string; email: string } | null = null;
+  let authSupabase: any = null; // لحفظ المحاضرات
+  try {
+    const { getAuthContext, getSupabase, getSupabaseBypass } = await import("@/lib/server/role");
+    const ctx = await getAuthContext();
+    if (ctx.isStudent || (ctx as any).studentEmail) {
+      return NextResponse.json({ success: false, error: { message: "Forbidden — students cannot use Gemini generation. Only teachers can generate. / الطلاب لا يمكنهم استخدام التوليد" } }, { status: 403 });
+    }
+    if (ctx.isTeacher && (ctx as any).teacherUsername) {
+      // الأستاذة عبر username+كود — مسموح
+      authUser = { id: ctx.user!.id, email: ctx.user!.email };
+      authSupabase = getSupabaseBypass();
+    } else if (ctx.user) {
+      // Supabase القديم — يجب أن يكون teacher/admin
+      if (ctx.role === "student") {
+        return NextResponse.json({ success: false, error: { message: "Forbidden — students cannot use Gemini generation. Only teachers can generate. / الطلاب لا يمكنهم استخدام التوليد" } }, { status: 403 });
+      }
+      authUser = { id: ctx.user.id, email: ctx.user.email };
+      authSupabase = getSupabase();
+    } else {
+      return NextResponse.json({ success: false, error: { message: "Unauthorized — please sign in." } }, { status: 401 });
+    }
+  } catch (e) {
+    return NextResponse.json({ success: false, error: { message: "Unauthorized — please sign in." } }, { status: 401 });
   }
 
   const contentType = req.headers.get("content-type") || "";
@@ -200,19 +200,35 @@ export async function POST(req: NextRequest) {
           model: m,
           outputLanguage,
         });
-        const { data: inserted, error: insertError } = await supabase
+        // محاولة الحفظ — قد تفشل للأستاذة عبر teacher_session لأن professor_id يتطلب uuid حقيقي
+        // نجعلها اختيارية: إذا فشلت نحاول بدون professor_id أو نتجاهل ونكمل
+        let professorIdToSave: string | null = null;
+        if (authUser) {
+          // אם id يبدو uuid (يحتوي -) نستخدمه، وإلا نحاول جلبه من قاعدة البيانات
+          const looksUuid = /^[0-9a-f-]{36}$/i.test(authUser.id);
+          if (looksUuid) professorIdToSave = authUser.id;
+          else if (authUser.id.startsWith("teacher:")) {
+            try {
+              const supa = authSupabase || (await import("@/lib/server/role")).getSupabaseBypass();
+              const { data: existing } = await supa.from("courses").select("teacher_id").eq("teacher_username", (authUser.email.split("@")[0] === "enas.mesbah" ? "enas" : authUser.id.split(":")[1] || "enas")).limit(1).maybeSingle() as any;
+              if (existing?.teacher_id) professorIdToSave = existing.teacher_id;
+            } catch {}
+          } else professorIdToSave = authUser.id;
+        }
+        const insertPayload: any = {
+          title: title || null,
+          original_text: finalText,
+          output_language: outputLanguage,
+          generated_data: data,
+          generated_markdown: markdown,
+          input_chars: finalText.length,
+          files_meta: extractMeta.length ? extractMeta : null,
+          model_used: m,
+        };
+        if (professorIdToSave) insertPayload.professor_id = professorIdToSave;
+        const { data: inserted, error: insertError } = await authSupabase
           .from("lectures_history")
-          .insert({
-            professor_id: user.id,
-            title: title || null,
-            original_text: finalText,
-            output_language: outputLanguage,
-            generated_data: data,
-            generated_markdown: markdown,
-            input_chars: finalText.length,
-            files_meta: extractMeta.length ? extractMeta : null,
-            model_used: m,
-          })
+          .insert(insertPayload)
           .select("id")
           .single();
         if (!insertError && inserted) savedId = inserted.id;
@@ -226,8 +242,8 @@ export async function POST(req: NextRequest) {
         data,
         meta: {
           model: m,
-          email: user.email,
-          professorId: user.id,
+          email: authUser!.email,
+          professorId: authUser!.id,
           generatedAt: new Date().toISOString(),
           inputChars: finalText.length,
           filesProcessed: extractMeta,
