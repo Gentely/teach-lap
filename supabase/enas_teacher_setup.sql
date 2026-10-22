@@ -7,17 +7,33 @@
 -- أسهل: نأخذ معرف المشرفة الحالية ونستخدمه كمدرس افتراضي، أو نستخدم username كنص
 -- هنا نضيف عمود teacher_username اختياري لمقررات إيناس بدون كسر RLS الحالي
 
--- 1) إضافة أعمدة ناقصة إن لم تكن موجودة (إصلاح للمشاريع التي لم تشغل step5_lms كاملاً)
+-- 1) ضمان وجود الجدول والأعمدة (يُصلح حالة فشل الملف الرابع step5_lms)
+-- إذا كان الجدول غير موجود أصلاً (كما في خطأك الحالي teacher_id does not exist) ننشئه كاملاً
+create table if not exists public.courses (
+  id uuid primary key default gen_random_uuid(),
+  teacher_id uuid references auth.users(id) on delete cascade,
+  title text not null,
+  code text not null,
+  description text,
+  teacher_username text,
+  created_at timestamptz not null default now(),
+  unique (teacher_id, code)
+);
+-- إذا كان الجدول موجوداً لكن بعض الأعمدة ناقصة، نضيفها
+alter table public.courses add column if not exists teacher_id uuid;
 alter table public.courses add column if not exists teacher_username text;
 alter table public.courses add column if not exists code text;
 alter table public.courses add column if not exists description text;
+alter table public.courses add column if not exists title text;
+alter table public.courses add column if not exists created_at timestamptz;
 create index if not exists idx_courses_teacher_username on public.courses(teacher_username);
+create index if not exists idx_courses_teacher on public.courses(teacher_id);
+create index if not exists idx_courses_created on public.courses(created_at desc);
+alter table public.courses enable row level security;
 -- تعبئة code للصفوف القديمة التي كانت null
 update public.courses set code = 'TMP-' || substr(id::text,1,8) where code is null;
 -- السماح بإنشاء مقررات عبر teacher_username بدون teacher_id (للأستاذة عبر username+كود)
--- هذا يصلح الدخول الذي كان يظهر Please sign in عند الضغط على أي زر
 alter table public.courses alter column teacher_id drop not null;
--- إزالة قيد المفتاح الخارجي القديم إن وجد وإعادة إنشائه كاختياري (nullable) لتجاوز مشاكل auth.users
 do $$ begin
   alter table public.courses drop constraint if exists courses_teacher_id_fkey;
   alter table public.courses add constraint courses_teacher_id_fkey foreign key (teacher_id) references auth.users(id) on delete cascade not valid;
