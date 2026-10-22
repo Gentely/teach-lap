@@ -72,6 +72,9 @@ create policy "courses_insert" on public.courses for insert to authenticated wit
 -- نستخدم معرف المشرفة كـ teacher_id مؤقتاً — سيتم تحديثه عبر API لاحقاً بالخدمة
 -- أو نضع teacher_username = 'enas' مباشرة
 
+-- فهرس فريد جديد لمنع تكرار المواد عند teacher_id null
+create unique index if not exists uniq_courses_username_code on public.courses(teacher_username, code);
+
 -- نحاول جلب id للمشرفة (enas.mesbah@sabratha.edu.ly) لاستخدامه كـ teacher_id
 do $$
 declare
@@ -82,29 +85,28 @@ begin
     -- إذا لم يوجد مستخدم auth، نستخدم admin id من allowed_users
     select added_by into enas_id from public.allowed_users where lower(email)=lower('enas.mesbah@sabratha.edu.ly') limit 1;
   end if;
-  if enas_id is null then
-    enas_id := gen_random_uuid();
-  end if;
+  -- لا نولّد UUID عشوائي يخرق المفتاح الخارجي؛ نترك teacher_id null وسيُقبل لأن العمود أصبح nullable
+  -- إذا لم نجد معرفاً صالحاً، نُبقي enas_id null
 
   -- 1) C A L L — سمستر 8 — الأحد 12:30
   insert into public.courses (teacher_id, teacher_username, title, code, description)
   values (enas_id, 'enas', 'C A L L', 'CALL-S8', 'C A L L — السمستر الثامن — الأحد المحاضرة الثالثة 12:30 ظهراً')
-  on conflict (teacher_id, code) do nothing;
+  on conflict (teacher_username, code) do nothing;
 
   -- 2) conversation2 listen & speaking — سمستر 2 — الإثنين 12:30 و 2:00
   insert into public.courses (teacher_id, teacher_username, title, code, description)
   values (enas_id, 'enas', 'conversation2 listen & speaking', 'CONV2-S2', 'conversation2 listen & speaking — السمستر الثاني — الإثنين المحاضرة الثالثة 12:30 والمحاضرة الرابعة 2:00 ظهراً')
-  on conflict (teacher_id, code) do nothing;
+  on conflict (teacher_username, code) do nothing;
 
   -- 3) technology in ELT — سمستر 7 — الأربعاء والخميس 12:30
   insert into public.courses (teacher_id, teacher_username, title, code, description)
   values (enas_id, 'enas', 'technology in ELT', 'TECH-ELT-S7', 'technology in ELT — السمستر السابع — الأربعاء والخميس المحاضرة الثالثة 12:30 ظهراً')
-  on conflict (teacher_id, code) do nothing;
+  on conflict (teacher_username, code) do nothing;
 
   -- 4) phonology — سمستر 4 — الأحد 10:30 و 2:00 + الأربعاء 2:00
   insert into public.courses (teacher_id, teacher_username, title, code, description)
   values (enas_id, 'enas', 'phonology', 'PHON-S4', 'phonology — السمستر الرابع — الأحد المحاضرة الثانية 10:30 والمحاضرة الرابعة 2:00 + الأربعاء المحاضرة الرابعة 2:00 ظهراً')
-  on conflict (teacher_id, code) do nothing;
+  on conflict (teacher_username, code) do nothing;
 end $$;
 
 -- 4) التحقق
