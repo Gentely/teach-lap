@@ -22,6 +22,13 @@ create table if not exists public.courses (
   created_at  timestamptz not null default now(),
   unique (teacher_id, code)
 );
+-- إصلاح إذا كان الجدول موجوداً مسبقاً بدون teacher_id (خطأ 42703 الذي ظهر لك)
+alter table public.courses add column if not exists teacher_id uuid;
+alter table public.courses add column if not exists title text;
+alter table public.courses add column if not exists code text;
+alter table public.courses add column if not exists description text;
+alter table public.courses add column if not exists created_at timestamptz;
+alter table public.courses add column if not exists teacher_username text;
 create index if not exists idx_courses_teacher on public.courses(teacher_id);
 create index if not exists idx_courses_created on public.courses(created_at desc);
 alter table public.courses enable row level security;
