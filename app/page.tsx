@@ -1,6 +1,9 @@
 "use client";
 import { useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { generateMarkdown } from "@/lib/markdown";
+import ExportButtons from "@/components/ExportButtons";
+import HistoryPanel from "@/components/HistoryPanel";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -17,14 +20,15 @@ export default function HomePage() {
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [resultMeta, setResultMeta] = useState<any>(null);
   const [error, setError] = useState("");
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isRTL = locale === "ar";
 
   function addFiles(newFiles: FileList | File[]) {
     const arr = Array.from(newFiles);
-    // فلترة الأنواع المسموحة فقط — الباقي سيظهر خطأه على الخادم أيضاً
     const allowed = arr.filter((f) => {
       const n = f.name.toLowerCase();
       return n.endsWith(".pdf") || n.endsWith(".docx") || f.type.includes("pdf") || f.type.includes("wordprocessingml") || f.type.includes("officedocument");
@@ -32,7 +36,7 @@ export default function HomePage() {
     if (allowed.length !== arr.length) {
       setError(locale === "ar" ? "تم تجاهل ملفات غير مدعومة — السماح فقط .pdf و .docx" : "Some files ignored — only .pdf and .docx are allowed");
     }
-    setFiles((prev) => [...prev, ...allowed].slice(0, 10)); // حد 10 ملفات
+    setFiles((prev) => [...prev, ...allowed].slice(0, 10));
   }
 
   function removeFile(idx: number) {
@@ -47,7 +51,6 @@ export default function HomePage() {
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files?.length) addFiles(e.target.files);
-    // إعادة التعيين للسماح باختيار نفس الملف مرة أخرى
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -55,31 +58,27 @@ export default function HomePage() {
   const filesCount = files.length;
 
   async function handleGenerate() {
-    // التحقق المحلي: نحتاج 40 حرفاً على الأقل من النص أو الملفات — التحقق النهائي على الخادم
     if (text.trim().length === 0 && files.length === 0) {
       return setError(locale === "ar" ? "الصق نصاً أو ارفع ملفاً واحداً على الأقل (الحد الأدنى 40 حرفاً)" : "Paste some text or upload at least one file (minimum 40 characters)");
     }
-
     setLoading(true);
     setError("");
     setResult(null);
-
+    setResultMeta(null);
     try {
-      // نستخدم FormData دائماً لدعم الملفات — الخادم يستخرج النص ثم يرسله إلى Gemini
       const formData = new FormData();
       formData.set("title", title);
       formData.set("text", text);
       formData.set("outputLanguage", lang);
       for (const f of files) formData.append("files", f);
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        body: formData, // لا نحدد Content-Type يدوياً — المتصفح يضيف boundary
-      });
+      const res = await fetch("/api/generate", { method: "POST", body: formData });
       const j = await res.json();
       if (!res.ok || !j.success) throw new Error(j.error?.message || (locale === "ar" ? "فشل التوليد" : "Generation failed"));
       setResult(j.data);
-      // يمكن إظهار ميتا الملفات لو أردنا: console.log(j.meta)
+      setResultMeta(j.meta || null);
+      // تحديث السجل تلقائياً بعد الحفظ الناجح
+      setHistoryRefresh((k) => k + 1);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -92,8 +91,19 @@ export default function HomePage() {
     setText("");
     setFiles([]);
     setResult(null);
+    setResultMeta(null);
     setError("");
   }
+
+  // Markdown للتصدير من النتيجة الحالية
+  const currentMarkdown = result
+    ? generateMarkdown(result, {
+        title: title || text.slice(0, 60) || "lecture",
+        createdAt: resultMeta?.generatedAt,
+        model: resultMeta?.model,
+        outputLanguage: lang,
+      })
+    : "";
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" dir={isRTL ? "rtl" : "ltr"}>
@@ -136,22 +146,16 @@ export default function HomePage() {
               />
             </div>
 
-            {/* === حقل رفع الملفات — الخطوة الثانية === */}
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-700 block">{t.uploadLabel}</label>
               <p className="text-[11px] text-slate-500 leading-relaxed">{t.uploadDesc}</p>
 
               <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative rounded-2xl border-2 border-dashed px-6 py-8 text-center cursor-pointer transition ${
-                  dragOver ? "border-[#0F4C5C] bg-[#F2F9FB]" : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#0F4C5C]/40"
-                }`}
+                className={`relative rounded-2xl border-2 border-dashed px-6 py-8 text-center cursor-pointer transition ${dragOver ? "border-[#0F4C5C] bg-[#F2F9FB]" : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[#0F4C5C]/40"}`}
               >
                 <input
                   ref={fileInputRef}
@@ -210,7 +214,7 @@ export default function HomePage() {
 
             <div className="flex gap-2">
               <button onClick={handleGenerate} disabled={loading} className="flex-1 py-3 rounded-xl bg-[#0F4C5C] text-white font-black disabled:opacity-60 disabled:cursor-not-allowed">
-                {loading ? (isRTL ? t.uploading : t.uploading) : t.generateBtn}
+                {loading ? t.uploading : t.generateBtn}
               </button>
               <button onClick={handleClear} disabled={loading} className="px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm">
                 {t.clearBtn}
@@ -233,21 +237,45 @@ export default function HomePage() {
           <div className="mt-6 rounded-2xl bg-[#F2F9FB] border border-[#E6F2F5] p-4">
             <p className="text-xs font-bold text-[#0B3C49]">🔒 {isRTL ? "الخصوصية" : "Privacy"}</p>
             <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-              {isRTL
-                ? "يتم استخراج النص من PDF/Word على الخادم فقط — لا تُرسل الملفات ثنائياً إلى Gemini، بل النص المستخرج فقط، ومفتاح API يبقى مخفياً."
-                : "PDF/Word text is extracted server-side only — binary files are never sent to Gemini, only extracted text, and the API key stays hidden on the server."}
+              {isRTL ? "يتم استخراج النص من PDF/Word على الخادم فقط — لا تُرسل الملفات ثنائياً إلى Gemini، بل النص المستخرج فقط، ومفتاح API يبقى مخفياً." : "PDF/Word text is extracted server-side only — binary files are never sent to Gemini, only extracted text, and the API key stays hidden on the server."}
             </p>
+          </div>
+          <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-100 p-4">
+            <p className="text-xs font-bold text-amber-800">{isRTL ? "الحفظ التلقائي" : "Auto-save"}</p>
+            <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">{isRTL ? "كل توليد ناجح يُحفظ تلقائياً في سجلك (lectures_history) ومرتبط بحسابك فقط." : "Every successful generation is auto-saved to your history (lectures_history), linked to your account only."}</p>
           </div>
         </section>
       </div>
 
       {result && (
         <section className="mt-6 bg-white rounded-3xl shadow border border-slate-100 p-6 space-y-4">
-          <h3 className="font-black text-[#0B3C49]">{t.resultsTitle}</h3>
-          <p className="text-sm leading-7 bg-[#F2F9FB] border border-[#E6F2F5] rounded-2xl p-4">{result.summary}</p>
-          <pre className="text-xs bg-slate-50 p-4 rounded-xl overflow-auto max-h-[500px] border border-slate-100">{JSON.stringify(result, null, 2)}</pre>
+          <div className="flex flex-wrap gap-3 justify-between items-start">
+            <h3 className="font-black text-[#0B3C49]">{t.resultsTitle}</h3>
+            {resultMeta?.savedLectureId && <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">{t.currentResultSavedNote}</span>}
+          </div>
+
+          <p className="text-sm leading-7 bg-[#F2F9FB] border border-[#E6F2F5] rounded-2xl p-4 whitespace-pre-wrap">{result.summary}</p>
+
+          {/* زر التصدير للنتيجة الحالية */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-black text-[#0B3C49] mb-3">{t.currentResultExportTitle}</p>
+            <ExportButtons markdown={currentMarkdown} title={title || text.slice(0, 30) || "lecture"} />
+            <p className="text-[11px] text-slate-500 mt-2">{isRTL ? "سيتم تنزيل ملف .md أو .txt بعنوان المحاضرة والتاريخ" : "Downloads a .md or .txt file named with the lecture title and date"}</p>
+          </div>
+
+          <details className="rounded-2xl border border-slate-100 bg-white">
+            <summary className="px-4 py-3 text-xs font-bold text-slate-700 cursor-pointer">{isRTL ? "معاينة Markdown الكامل" : "Preview full Markdown"}</summary>
+            <pre className="text-xs leading-6 p-4 bg-slate-50 rounded-xl overflow-auto max-h-96 whitespace-pre-wrap break-words m-3 border border-slate-100">{currentMarkdown}</pre>
+          </details>
+
+          <pre className="text-xs bg-slate-50 p-4 rounded-xl overflow-auto max-h-[400px] border border-slate-100">{JSON.stringify(result, null, 2)}</pre>
         </section>
       )}
+
+      {/* سجل المحاضرات — الخطوة الثالثة */}
+      <div className="mt-8">
+        <HistoryPanel refreshKey={historyRefresh} />
+      </div>
     </div>
   );
 }
