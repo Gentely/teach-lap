@@ -1,33 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { getAuthContext, requireCourseTeacher } from "@/lib/server/role";
-
-function getSupabase() {
-  const cookieStore = cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key-for-build";
-  return createServerClient(url, key, {
-    cookies: {
-      getAll() { return cookieStore.getAll(); },
-      setAll(cookiesToSet) {
-        try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
-      },
-    },
-  });
-}
+import { getAuthContext, requireCourseTeacher, getSupabase, getSupabaseBypass } from "@/lib/server/role";
 
 // GET /api/courses/:id — تفاصيل مقرر واحد (يجب أن يكون له حق الوصول)
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const ctx = await getAuthContext();
   if (!ctx.user) return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
 
-  const supabase = getSupabase();
+  const supabase = (ctx as any).teacherUsername ? getSupabaseBypass() : getSupabase();
   const { data: course, error } = await supabase.from("courses").select("*").eq("id", params.id).maybeSingle();
   if (error || !course) return NextResponse.json({ success: false, error: { message: "Course not found" } }, { status: 404 });
 
   // التحقق من الوصول: أستاذه أو طالب مسجل أو مشرف
-  const isTeacher = course.teacher_id === ctx.user.id || ctx.isAdmin;
+  const isTeacher = ((course as any).teacher_username && String((course as any).teacher_username).toLowerCase() === (ctx as any).teacherUsername) || (course as any).teacher_id === ctx.user.id || ctx.isAdmin;
   let isEnrolled = false;
   if (!isTeacher) {
     const { data: en } = await supabase.from("course_enrollments").select("id").eq("course_id", params.id).eq("student_email", ctx.user.email.toLowerCase()).maybeSingle();
@@ -63,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (Object.keys(updates).length === 0) return NextResponse.json({ success: false, error: { message: "No fields to update" } }, { status: 400 });
 
-  const supabase = getSupabase();
+  const supabase = (check.ctx as any).teacherUsername ? getSupabaseBypass() : getSupabase();
   const { data, error } = await supabase.from("courses").update(updates).eq("id", params.id).select().single();
   if (error) return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
   return NextResponse.json({ success: true, data });
@@ -74,7 +58,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const check = await requireCourseTeacher(params.id);
   if (!check.ok) return NextResponse.json({ success: false, error: { message: check.message } }, { status: check.status });
 
-  const supabase = getSupabase();
+  const supabase = (check.ctx as any).teacherUsername ? getSupabaseBypass() : getSupabase();
   const { error } = await supabase.from("courses").delete().eq("id", params.id);
   if (error) return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
   return NextResponse.json({ success: true });

@@ -1,21 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { requireCourseTeacher, getAuthContext } from "@/lib/server/role";
-
-function getSupabase() {
-  const cookieStore = cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key-for-build";
-  return createServerClient(url, key, {
-    cookies: {
-      getAll() { return cookieStore.getAll(); },
-      setAll(cookiesToSet) {
-        try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
-      },
-    },
-  });
-}
+import { requireCourseTeacher, getAuthContext, getSupabase, getSupabaseBypass } from "@/lib/server/role";
 
 // GET /api/courses/:id/records?type=attendance|coursework|exams&student_email=... (تصفية اختيارية)
 // الأستاذ يرى كل الطلاب، الطالب يرى نفسه فقط
@@ -27,12 +11,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const type = searchParams.get("type") || "attendance"; // attendance | coursework | exams
   const filterEmail = searchParams.get("student_email")?.trim().toLowerCase() || null;
 
-  const supabase = getSupabase();
+  const supabase = (ctx as any).teacherUsername ? getSupabaseBypass() : getSupabase();
 
   // تحقق من الوصول للمقرر
-  const { data: course } = await supabase.from("courses").select("teacher_id").eq("id", params.id).maybeSingle();
+  const { data: course } = await supabase.from("courses").select("teacher_id, teacher_username").eq("id", params.id).maybeSingle();
   if (!course) return NextResponse.json({ success: false, error: { message: "Course not found" } }, { status: 404 });
-  const isTeacher = course.teacher_id === ctx.user.id || ctx.isAdmin;
+  const isTeacher = ((course as any).teacher_username && String((course as any).teacher_username).toLowerCase() === (ctx as any).teacherUsername) || (course as any).teacher_id === ctx.user.id || ctx.isAdmin;
   if (!isTeacher) {
     const { data: en } = await supabase.from("course_enrollments").select("id").eq("course_id", params.id).eq("student_email", ctx.user.email.toLowerCase()).maybeSingle();
     if (!en) return NextResponse.json({ success: false, error: { message: "Forbidden" } }, { status: 403 });
@@ -73,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ success: false, error: { message: "Valid student_email required" } }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  const supabase = (check.ctx as any).teacherUsername ? getSupabaseBypass() : getSupabase();
 
   // تحقق أن الطالب مسجل في المقرر
   const { data: enrolled } = await supabase.from("course_enrollments").select("id").eq("course_id", params.id).eq("student_email", student_email).maybeSingle();
@@ -81,6 +65,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   let table = "";
   let payload: any = { course_id: params.id, student_email };
+
+  const byId = String(check.ctx.user!.id).startsWith("teacher:") ? null : check.ctx.user!.id;
 
   if (type === "attendance") {
     table = "attendance";
@@ -90,7 +76,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     payload.session_date = session_date;
     payload.status = status;
     payload.notes = body.notes ? String(body.notes).trim().slice(0,500) : null;
-    payload.recorded_by = check.ctx.user!.id;
+    if (byId) payload.recorded_by = byId;
   } else if (type === "coursework") {
     table = "coursework_grades";
     const title = String(body.title || "").trim();
@@ -103,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     payload.score = score;
     payload.max_score = max_score;
     payload.notes = body.notes ? String(body.notes).trim().slice(0,500) : null;
-    payload.graded_by = check.ctx.user!.id;
+    if (byId) payload.graded_by = byId;
   } else if (type === "exams") {
     table = "exam_scores";
     const exam_title = String(body.exam_title || body.title || "").trim();
@@ -116,7 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     payload.score = score;
     payload.max_score = max_score;
     payload.exam_date = exam_date;
-    payload.graded_by = check.ctx.user!.id;
+    if (byId) payload.graded_by = byId;
   } else {
     return NextResponse.json({ success: false, error: { message: "Invalid type" } }, { status: 400 });
   }
@@ -142,7 +128,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   else if (type === "exams") table = "exam_scores";
   else return NextResponse.json({ success: false, error: { message: "Invalid type" } }, { status: 400 });
 
-  const supabase = getSupabase();
+  const supabase = (check.ctx as any).teacherUsername ? getSupabaseBypass() : getSupabase();
   const { error } = await supabase.from(table).delete().eq("id", recordId).eq("course_id", params.id);
   if (error) return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
   return NextResponse.json({ success: true });
