@@ -50,10 +50,7 @@ export default function TeacherLoginClient() {
           <p className="text-xs text-white/75 mt-2 leading-relaxed">
             {isRTL ? "أدخل اسم المستخدم والكود الدائم للدخول إلى صفحتك المستقلة" : "Enter your username and permanent code to access your private space"}
           </p>
-          <div className="mt-4 inline-flex gap-2 text-[11px] bg-white/10 border border-white/20 rounded-full px-3 py-1.5">
-            <span className="opacity-80">{isRTL ? "مثال:" : "Example:"}</span>
-            <span className="font-bold">Enas / ENAS-7784</span>
-          </div>
+          {/* تم حذف المثال العلني Enas/ENAS-7784 للحفاظ على الخصوصية */}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -62,7 +59,7 @@ export default function TeacherLoginClient() {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder={isRTL ? "مثال: Enas" : "e.g., Enas"}
+              placeholder={isRTL ? "اسم المستخدم" : "Username"}
               className="w-full rounded-xl border-2 border-slate-200 focus:border-[#0B3C49] outline-none px-4 py-3 text-sm"
               autoComplete="username"
             />
@@ -72,7 +69,7 @@ export default function TeacherLoginClient() {
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder={isRTL ? "مثال: ENAS-7784" : "e.g., ENAS-7784"}
+              placeholder="••••••••"
               type="password"
               className="w-full rounded-xl border-2 border-slate-200 focus:border-[#0B3C49] outline-none px-4 py-3 text-sm tracking-widest text-center font-mono"
               autoComplete="current-password"
