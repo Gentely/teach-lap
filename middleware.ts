@@ -40,7 +40,6 @@ export async function middleware(req: NextRequest) {
   }
 
   const email = user.email.toLowerCase();
-  // نجلب الدور أيضاً لحماية /admin
   const { data: allowed } = await supabase.from("allowed_users").select("email, role").eq("email", email).maybeSingle();
 
   if (!allowed) {
@@ -52,11 +51,24 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // حماية مسار المشرفة — فقط role=admin
+  // حماية مسار المشرفة — فقط admin
   if (pathname.startsWith("/admin") && allowed.role !== "admin") {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/";
     redirectUrl.searchParams.set("error", "admin_only");
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // حماية توليد Gemini — فقط teacher/admin، الطالب لا يستطيع استخدام Gemini
+  if (pathname.startsWith("/api/generate") && allowed.role === "student") {
+    return NextResponse.json({ success: false, error: { message: "Forbidden — students cannot use Gemini generation / الطلاب لا يمكنهم استخدام التوليد" } }, { status: 403 });
+  }
+
+  // حماية صفحات الأستاذ — فقط teacher/admin
+  if ((pathname.startsWith("/teacher") || pathname.startsWith("/courses/new")) && allowed.role === "student") {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = "/student";
+    redirectUrl.searchParams.set("error", "teacher_only");
     return NextResponse.redirect(redirectUrl);
   }
 
