@@ -40,7 +40,8 @@ export async function middleware(req: NextRequest) {
   }
 
   const email = user.email.toLowerCase();
-  const { data: allowed } = await supabase.from("allowed_users").select("email").eq("email", email).maybeSingle();
+  // نجلب الدور أيضاً لحماية /admin
+  const { data: allowed } = await supabase.from("allowed_users").select("email, role").eq("email", email).maybeSingle();
 
   if (!allowed) {
     await supabase.auth.signOut();
@@ -48,6 +49,14 @@ export async function middleware(req: NextRequest) {
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("error", "not_allowed");
     redirectUrl.searchParams.set("email", email);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // حماية مسار المشرفة — فقط role=admin
+  if (pathname.startsWith("/admin") && allowed.role !== "admin") {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    redirectUrl.searchParams.set("error", "admin_only");
     return NextResponse.redirect(redirectUrl);
   }
 
