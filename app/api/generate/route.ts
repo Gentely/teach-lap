@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { extractTextsFromFiles, MAX_TOTAL_CHARS } from "@/lib/server/extractText";
+import { generateMarkdown } from "@/lib/markdown";
 
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
@@ -195,15 +196,49 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: { message: "Parse error from Gemini" } }, { status: 502 });
       }
       if (data.course_applications && !data.libyan_applications) data.libyan_applications = data.course_applications;
+
+      // === الخطوة الثالثة: حفظ تلقائي في lectures_history ===
+      // نولّد Markdown ثم نحفظ (professor_id = auth.uid())
+      let savedId: string | null = null;
+      try {
+        const markdown = generateMarkdown(data, {
+          title: title || pastedText.slice(0, 60),
+          createdAt: new Date().toISOString(),
+          model: m,
+          outputLanguage,
+        });
+        const { data: inserted, error: insertError } = await supabase
+          .from("lectures_history")
+          .insert({
+            professor_id: user.id,
+            title: title || null,
+            original_text: finalText,
+            output_language: outputLanguage,
+            generated_data: data,
+            generated_markdown: markdown,
+            input_chars: finalText.length,
+            files_meta: extractMeta.length ? extractMeta : null,
+            model_used: m,
+          })
+          .select("id")
+          .single();
+        if (!insertError && inserted) savedId = inserted.id;
+        else if (insertError) console.error("lectures_history insert failed:", insertError.message);
+      } catch (e) {
+        console.error("lectures_history exception:", e);
+      }
+
       return NextResponse.json({
         success: true,
         data,
         meta: {
           model: m,
           email: user.email,
+          professorId: user.id,
           generatedAt: new Date().toISOString(),
           inputChars: finalText.length,
           filesProcessed: extractMeta,
+          savedLectureId: savedId,
         },
       });
     }
