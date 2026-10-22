@@ -20,17 +20,20 @@ const SCHEMA = {
   required: ["summary","core_concepts","key_takeaways","libyan_applications","scenario_qa","reflection_tasks","discussion_questions"]
 };
 
-// تم استبدال مصطلحات "Libyan" بمصطلحات محايدة في البرومبت
 function buildPrompt({ title, text, outputLanguage }: { title: string; text: string; outputLanguage: string }) {
   const lang = outputLanguage === "ar" ? "Write ALL fields in Modern Standard Arabic." : outputLanguage === "bilingual" ? "Write ALL fields bilingually: Arabic then — EN — then English." : "Write ALL fields in clear academic English.";
   return `You are SABRATHA ELT Tech-Assistant, professor of Educational Technology & ELT. Students are English Dept, Sabratha University. Ground ideas in Course Context / Standard Classroom: large classes, limited devices, smartphones, intermittent internet.\n\n${lang}\n\nProduce EXACT JSON:\n1.summary 220-350w (link to SAMR/TPACK when relevant)\n2.core_concepts 5-8 {term,definition,classroom_link}\n3.key_takeaways 5-8\n4.libyan_applications→ rename to course_applications in output but keep key for compat — 4-6 strings each: tool + ELT skill + fit for Standard Classroom\n5.scenario_qa 4-6 {question,model_answer}\n6.reflection_tasks 3-5 {title,prompt,type}\n7.discussion_questions 3-5\nReturn ONLY JSON.\n\nTITLE: ${title || "(untitled)"}\nCONTENT:\n\"\"\"\n${text}\n\"\"\"\n`;
 }
 
 export async function POST(req: NextRequest) {
-  // تحقق من القائمة البيضاء قبل السماح بالتوليد — يخفي مفتاح Gemini تماماً
   const cookieStore = cookies();
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: { get: (n: string) => cookieStore.get(n)?.value, set: (n: string, v: string, o: any) => cookieStore.set({ name: n, value: v, ...o }), remove: (n: string, o: any) => cookieStore.set({ name: n, value: "", ...o }) },
+    cookies: {
+      getAll() { return cookieStore.getAll(); },
+      setAll(cookiesToSet) {
+        try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
+      },
+    },
   });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return NextResponse.json({ success: false, error: { message: "Unauthorized — please sign in." } }, { status: 401 });
@@ -66,7 +69,6 @@ export async function POST(req: NextRequest) {
       const raw:string = (j.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("").trim();
       if(!raw) return NextResponse.json({success:false, error:{message:"Gemini returned empty"}},{status:502});
       let data:any; try{ let t=raw.trim(); const f=t.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i); if(f) t=f[1]; const s=t.indexOf("{"),e=t.lastIndexOf("}"); data=JSON.parse(t.slice(s,e+1)); } catch{ return NextResponse.json({success:false, error:{message:"Parse error from Gemini"}},{status:502}); }
-      // توحيد تسمية الحقل للتوافق: libyan_applications هو نفسه Course Context
       if (data.course_applications && !data.libyan_applications) data.libyan_applications = data.course_applications;
       return NextResponse.json({ success:true, data, meta:{ model:m, email:user.email, generatedAt:new Date().toISOString() } });
     }

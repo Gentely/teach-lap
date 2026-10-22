@@ -1,17 +1,18 @@
+
 # Dependencies / build
-node_modules/
-dist/
-build/
-.vercel/
-
 # Environment secrets
-.env
-.env.local
-.env.*.local
-
 # OS / editor noise
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
 *.log
+.DS_Store
+.env
+.env.*.local
+.env.local
+.idea/
+.next
+.vercel/
+.vscode/
+Thumbs.db
+build/
+dist/
+next-env.d.ts
+node_modules/
