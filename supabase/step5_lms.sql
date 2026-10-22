@@ -42,6 +42,11 @@ create table if not exists public.course_enrollments (
   enrolled_at   timestamptz not null default now(),
   unique (course_id, student_email)
 );
+-- إصلاح أعمدة مفقودة إذا كان الجدول موجوداً جزئياً (خطأ studer does not exist)
+alter table public.course_enrollments add column if not exists course_id uuid;
+alter table public.course_enrollments add column if not exists student_email text;
+alter table public.course_enrollments add column if not exists student_id uuid;
+alter table public.course_enrollments add column if not exists enrolled_at timestamptz;
 create index if not exists idx_enrollments_course on public.course_enrollments(course_id);
 create index if not exists idx_enrollments_email on public.course_enrollments(student_email);
 create index if not exists idx_enrollments_student on public.course_enrollments(student_id);
@@ -60,6 +65,12 @@ create index if not exists idx_course_lectures_course on public.course_lectures(
 create index if not exists idx_course_lectures_lecture on public.course_lectures(lecture_id);
 alter table public.course_lectures enable row level security;
 
+-- إصلاح أعمدة course_lectures إذا ناقصة
+alter table public.course_lectures add column if not exists course_id uuid;
+alter table public.course_lectures add column if not exists lecture_id uuid;
+alter table public.course_lectures add column if not exists published_by uuid;
+alter table public.course_lectures add column if not exists published_at timestamptz;
+
 -- 5) سجل الحضور والغياب
 create table if not exists public.attendance (
   id           uuid primary key default gen_random_uuid(),
@@ -72,6 +83,13 @@ create table if not exists public.attendance (
   created_at   timestamptz not null default now(),
   unique (course_id, student_email, session_date)
 );
+alter table public.attendance add column if not exists course_id uuid;
+alter table public.attendance add column if not exists student_email text;
+alter table public.attendance add column if not exists session_date date;
+alter table public.attendance add column if not exists status text;
+alter table public.attendance add column if not exists notes text;
+alter table public.attendance add column if not exists recorded_by uuid;
+alter table public.attendance add column if not exists created_at timestamptz;
 create index if not exists idx_attendance_course on public.attendance(course_id);
 create index if not exists idx_attendance_student on public.attendance(student_email);
 alter table public.attendance enable row level security;
@@ -88,6 +106,15 @@ create table if not exists public.coursework_grades (
   graded_by    uuid references auth.users(id) on delete set null,
   graded_at    timestamptz not null default now()
 );
+alter table public.coursework_grades add column if not exists course_id uuid;
+alter table public.coursework_grades add column if not exists student_email text;
+alter table public.coursework_grades add column if not exists title text;
+alter table public.coursework_grades add column if not exists score numeric;
+alter table public.coursework_grades add column if not exists max_score numeric;
+alter table public.coursework_grades add column if not exists notes text;
+alter table public.coursework_grades add column if not exists graded_by uuid;
+alter table public.coursework_grades add column if not exists graded_at timestamptz;
+alter table public.coursework_grades add column if not exists created_at timestamptz;
 create index if not exists idx_coursework_course on public.coursework_grades(course_id);
 create index if not exists idx_coursework_student on public.coursework_grades(student_email);
 alter table public.coursework_grades enable row level security;
@@ -104,6 +131,14 @@ create table if not exists public.exam_scores (
   graded_by    uuid references auth.users(id) on delete set null,
   graded_at    timestamptz not null default now()
 );
+alter table public.exam_scores add column if not exists course_id uuid;
+alter table public.exam_scores add column if not exists student_email text;
+alter table public.exam_scores add column if not exists exam_title text;
+alter table public.exam_scores add column if not exists score numeric;
+alter table public.exam_scores add column if not exists max_score numeric;
+alter table public.exam_scores add column if not exists exam_date date;
+alter table public.exam_scores add column if not exists graded_by uuid;
+alter table public.exam_scores add column if not exists graded_at timestamptz;
 create index if not exists idx_exam_course on public.exam_scores(course_id);
 create index if not exists idx_exam_student on public.exam_scores(student_email);
 alter table public.exam_scores enable row level security;
