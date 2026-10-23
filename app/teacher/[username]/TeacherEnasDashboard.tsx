@@ -12,12 +12,12 @@ export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) 
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
 
   useEffect(() => {
-    // جلب مقررات إيناس — نستخدم نفس API العام لكن مع ترشيح teacher=enas
+    // جلب مقررات الأستاذة الحالية — فلترة حسب teacher_username الخاص بها
+    const myUser = teacher.username.toLowerCase();
     fetch("/api/courses").then(r => r.json()).then(j => {
       if (j.success) {
-        // فلترة لإيناس فقط (للتأكد حتى لو كان هناك مقررات أخرى)
-        const filtered = (j.data || []).filter((c: any) => (c.teacher_username || "").toLowerCase() === "enas" || c.teacher_id); // fallback
-        setCourses(filtered.length ? filtered : j.data || []);
+        const filtered = (j.data || []).filter((c: any) => (c.teacher_username || "").toLowerCase() === myUser);
+        setCourses(filtered);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
