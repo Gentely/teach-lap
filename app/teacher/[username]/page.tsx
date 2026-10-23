@@ -35,21 +35,6 @@ export default function TeacherPage({ params }: { params: { username: string } }
     return <div className="max-w-3xl mx-auto px-4 py-16 text-center text-red-600">الأستاذة غير موجودة</div>;
   }
 
-  // حالياً نركز على إيناس فقط — لكن البنية تدعم إيناس وإيمان بنفس الصفحة
-  if (teacher.username.toLowerCase() === "enas") {
-    return <TeacherEnasDashboard teacher={teacher} />;
-  }
-
-  // لإيمان — صفحة مؤقتة حتى توفر بياناتها
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-      <div className="bg-white rounded-3xl shadow border border-slate-100 p-8">
-        <h1 className="font-black text-[#0B3C49]">مرحباً {teacher.displayNameAr}</h1>
-        <p className="text-sm text-slate-500 mt-2">صفحة إيمان قيد الإعداد — عند توفر بيانات موادها سنضيفها كما فعلنا مع إيناس</p>
-        <form action="/api/auth/teacher-logout" method="POST" className="mt-6">
-          <button className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold">تسجيل خروج</button>
-        </form>
-      </div>
-    </div>
-  );
+  // إيناس + إيمان تستخدمان نفس لوحة التحكم — البيانات من lib/teachers.ts تحدد المواد والجدول
+  return <TeacherEnasDashboard teacher={teacher} />;
 }

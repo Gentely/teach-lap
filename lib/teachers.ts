@@ -1,4 +1,4 @@
-// بيانات الأستاذات — للمرحلة الحالية إيناس فقط (إيمان سنضيفها لاحقاً بسهولة)
+// بيانات الأستاذات — إيناس + إيمان — كل واحدة بموادها وجدولها المستقل
 export type Teacher = {
   username: string;        // اسم الدخول
   code: string;            // الكود الدائم — يُحفظ مشفراً في الخادم فقط
@@ -64,7 +64,6 @@ export const TEACHERS: Record<string, Teacher> = {
       },
     ],
   },
-  // إيمان — سنفعلها لاحقاً عند توفر البيانات
   Eman: {
     username: "Eman",
     code: "EMAN-8485",
@@ -72,7 +71,37 @@ export const TEACHERS: Record<string, Teacher> = {
     displayNameAr: "أ. إيمان",
     email: "eman@sabratha.edu.ly",
     role: "teacher",
-    subjects: [],
+    subjects: [
+      {
+        name: "writing 1",
+        nameAr: "الكتابة ١",
+        semester: "السمستر الأول",
+        yearLabel: "السنة الأولى",
+        schedule: [
+          { day: "Tuesday", dayAr: "الثلاثاء", lecture: "المحاضرة الأولى", time: "9:00 صباحاً" },
+          { day: "Tuesday", dayAr: "الثلاثاء", lecture: "المحاضرة الثانية", time: "10:30 صباحاً" },
+          { day: "Thursday", dayAr: "الخميس", lecture: "المحاضرة الأولى", time: "9:00 صباحاً" },
+          { day: "Thursday", dayAr: "الخميس", lecture: "المحاضرة الثانية", time: "10:30 صباحاً" },
+        ],
+      },
+      {
+        name: "Novel 2",
+        nameAr: "الرواية ٢",
+        semester: "السمستر السابع",
+        yearLabel: "السنة الرابعة",
+        schedule: [
+          { day: "Wednesday", dayAr: "الأربعاء", lecture: "المحاضرة الأولى", time: "9:00 صباحاً" },
+          { day: "Thursday", dayAr: "الخميس", lecture: "المحاضرة الثالثة", time: "12:30 ظهراً" },
+        ],
+      },
+      {
+        name: "Microteaching",
+        nameAr: "التدريس المصغر",
+        semester: "السمستر الثامن",
+        yearLabel: "السنة الرابعة",
+        schedule: [{ day: "Wednesday", dayAr: "الأربعاء", lecture: "المحاضرة الثانية", time: "10:30 صباحاً" }],
+      },
+    ],
   },
 };
 
