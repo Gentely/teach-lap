@@ -200,17 +200,20 @@ export async function POST(req: NextRequest) {
           model: m,
           outputLanguage,
         });
-        // محاولة الحفظ — قد تفشل للأستاذة عبر teacher_session لأن professor_id يتطلب uuid حقيقي
-        // نجعلها اختيارية: إذا فشلت نحاول بدون professor_id أو نتجاهل ونكمل
+        // الحفظ — يدعم teacher_session (Enas/Eman) عبر teacher_username + يجعل professor_id اختيارياً
         let professorIdToSave: string | null = null;
+        let teacherUsernameToSave: string | null = null;
         if (authUser) {
-          // אם id يبدو uuid (يحتوي -) نستخدمه، وإلا نحاول جلبه من قاعدة البيانات
           const looksUuid = /^[0-9a-f-]{36}$/i.test(authUser.id);
           if (looksUuid) professorIdToSave = authUser.id;
           else if (authUser.id.startsWith("teacher:")) {
+            const lower = authUser.id.split(":")[1]?.toLowerCase() || "";
+            if (lower === "enas" || lower === "eman") teacherUsernameToSave = lower;
+            else teacherUsernameToSave = lower || null;
+            // حاول أيضاً جلب professor_id الحقيقي إن وجد في courses للتوافق مع البيانات القديمة
             try {
               const supa = authSupabase || (await import("@/lib/server/role")).getSupabaseBypass();
-              const { data: existing } = await supa.from("courses").select("teacher_id").eq("teacher_username", (authUser.email.split("@")[0] === "enas.mesbah" ? "enas" : authUser.id.split(":")[1] || "enas")).limit(1).maybeSingle() as any;
+              const { data: existing } = await supa.from("courses").select("teacher_id").eq("teacher_username", teacherUsernameToSave).limit(1).maybeSingle() as any;
               if (existing?.teacher_id) professorIdToSave = existing.teacher_id;
             } catch {}
           } else professorIdToSave = authUser.id;
@@ -226,6 +229,7 @@ export async function POST(req: NextRequest) {
           model_used: m,
         };
         if (professorIdToSave) insertPayload.professor_id = professorIdToSave;
+        if (teacherUsernameToSave) insertPayload.teacher_username = teacherUsernameToSave;
         const { data: inserted, error: insertError } = await authSupabase
           .from("lectures_history")
           .insert(insertPayload)
