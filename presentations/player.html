@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TEACH-LAP — Presentation Player</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Calibri,sans-serif;background:#F2F9FB;color:#0B3C49}
+header{background:#0B3C49;color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+header h1{margin:0;font-size:16px}header p{margin:2px 0 0;font-size:11px;color:#E3B23C}
+.btn{border:0;border-radius:10px;padding:8px 14px;font-weight:800;font-size:12px;cursor:pointer}
+.btn-gold{background:#E3B23C;color:#0B3C49}.btn-white{background:#fff;color:#0B3C49;border:1px solid #E2E8F0}
+.lang{padding:6px 10px;border-radius:999px;background:#fff;color:#0B3C49;font-weight:800;font-size:12px;cursor:pointer;border:1px solid #E2E8F0}
+.wrap{max-width:1100px;margin:18px auto;padding:0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden}
+.card-head{background:#0B3C49;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.card-head b{font-size:11px;color:#E3B23C}.card-head span{font-size:11px;opacity:.9}
+.slide{aspect-ratio:13.33/7.5;background:#fff;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.slide-inner{width:90%;text-align:center}
+.slide h2{margin:4px 0;font-size:18px;color:#0B3C49}.slide p{margin:4px 0;font-size:10px;color:#64748B}
+audio{width:100%}
+.controls{padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{background:#FFF8E1;border:1px solid #F0E6C2;color:#7C5A0A;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800}
+.note{background:#FFF8E1;border:1px solid #F0E6C2;border-radius:12px;padding:10px 12px;font-size:12px;margin:14px 0}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>TEACH-LAP — Presentation with AI Voiceover</h1>
+    <p>Slide → Audio sync player — EN (voice-01) + AR (voice-00) • 8 slides • private, no passwords shown</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="lang" onclick="setLang('en')">English</button>
+    <button class="lang" onclick="setLang('ar')">العربية</button>
+    <button class="btn btn-gold" onclick="playAll()">▶ Play All</button>
+    <button class="btn btn-white" onclick="stopAll()">⏹ Stop</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="note">
+    <b>كيف تستخدم العرض الصوتي:</b> اختر اللغة → اضغط تشغيل على أي شريحة، أو "Play All" للتشغيل المتتالي. لإدراج الصوت في PowerPoint: Insert → Audio → ضع ملف <code>audio/en/*.mp3</code> أو <code>audio/ar/*.mp3</code> في كل شريحة مع خيار Play Automatically. — <b>الخصوصية:</b> لا أسماء/أكواد في الشرائح العامة، فقط الشريحة الأخيرة تنسب الفكرة لـ <b>أ. إيناس مصباح</b>.
+    <br><small>EN: Select language → Play per slide or Play All. To embed in PPTX, insert the mp3 per slide.</small>
+  </div>
+  <div id="grid" class="grid"></div>
+  <div class="note" style="background:#0B3C49;color:#fff;border-color:#0F4C5C">
+    <b>Technical credit only:</b> Technical project idea — A. Inas Mesbah — English Dept, Faculty of Education, Sabratha University. No credentials are included in any public slide.
+  </div>
+</div>
+
+<script>
+const slidesEN = [
+  {t:"01 — Cover", title:"TEACH-LAP", desc:"AI-Powered Teaching Assistant for ELT — private & Standard Classroom"},
+  {t:"02 — Definition", title:"What is TEACH-LAP?", desc:"Private platform • Gemini JSON → Markdown • auto-saved & exportable"},
+  {t:"03 — Importance", title:"Why It Matters", desc:"Save time • Quality SAMR/TPACK • Privacy • Real classroom fit"},
+  {t:"04 — Audience", title:"Who Is It For?", desc:"Two teachers isolated (Teacher A/B) • Students invited • Management read-only"},
+  {t:"05 — Benefits", title:"Benefits & Conclusion", desc:"Generate→Save→Publish→Track • Not a neglected public site"},
+  {t:"06 — Workflow", title:"How It Works — 8 Steps", desc:"Login → Courses → Invite → Generate → History → Publish → Track → Logout"},
+  {t:"07 — Tech", title:"Technical Architecture", desc:"Next.js + Supabase + Gemini + HMAC + Middleware 57.1kB"},
+  {t:"08 — Credit", title:"Technical Project Idea — A. Inas Mesbah", desc:"Pedagogical model, data structure & AI workflow"},
+];
+const slidesAR = [
+  {t:"01 — الغلاف", title:"TEACH-LAP", desc:"المساعد التدريسي الذكي — خاص ومصمم للفصل المعياري"},
+  {t:"02 — التعريف", title:"ما هو TEACH-LAP؟", desc:"منصة خاصة • تحويل نصوص/ملفات → محاضرة منظمة • حفظ وتصدير"},
+  {t:"03 — الأهمية", title:"لماذا هو مهم؟", desc:"توفير وقت • جودة SAMR/TPACK • خصوصية • ملاءمة واقعية"},
+  {t:"04 — الجمهور", title:"لمن هذا الموقع؟", desc:"أستاذتان معزولتان (أ/ب) • طالبات مدعوات • إدارة متابعة فقط"},
+  {t:"05 — الفائدة", title:"الفائدة والخلاصة", desc:"توليد←حفظ←نشر←متابعة • مركز مهني خاص"},
+  {t:"06 — سير العمل", title:"كيف يعمل — 8 خطوات", desc:"دخول → مقررات → دعوة → توليد → سجل → نشر → متابعة → خروج"},
+  {t:"07 — التقنية", title:"البنية التقنية", desc:"Next.js + Supabase + Gemini + HMAC + Middleware"},
+  {t:"08 — النسبة", title:"الفكرة التقنية — أ. إيناس مصباح", desc:"قسم الإنجليزية — كلية التربية — جامعة صبراتة"},
+];
+let lang='en', audios=[];
+function fileFor(i){
+  const n = String(i+1).padStart(2,'0');
+  if(lang==='en') return `audio/en/${n}_EN_${['intro','definition','importance','audience','benefits','workflow','tech','closing'][i]}.mp3`;
+  else return `audio/ar/${n}_AR_${['intro','definition','importance','audience','benefits','workflow','tech','closing'][i]}.mp3`;
+}
+function render(){
+  const grid=document.getElementById('grid'); grid.innerHTML=''; audios=[];
+  const data = lang==='en' ? slidesEN : slidesAR;
+  data.forEach((s,i)=>{
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML = `
+      <div class="card-head"><b>${s.t}</b><span>${lang==='en'?'Slide '+(i+1)+'/8':'شريحة '+(i+1)+'/8'}</span></div>
+      <div class="slide"><div class="slide-inner"><h2>${s.title}</h2><p>${s.desc}</p><span class="badge">${fileFor(i).split('/').pop()}</span></div></div>
+      <div class="controls">
+        <audio controls preload="none" id="a${i}" src="${fileFor(i)}"></audio>
+        <button class="btn btn-gold" onclick="document.getElementById('a${i}').play()">▶</button>
+        <button class="btn btn-white" onclick="document.getElementById('a${i}').pause()">⏸</button>
+      </div>`;
+    grid.appendChild(card);
+    audios.push(card.querySelector('audio'));
+  });
+  // auto chain Play All
+  audios.forEach((a,idx)=>{
+    a.addEventListener('ended', ()=>{ if(idx+1<audios.length) audios[idx+1].play(); });
+    a.addEventListener('error', ()=>{ console.log('missing', a.src); });
+  });
+}
+function setLang(l){ lang=l; render(); }
+function playAll(){ if(audios[0]) audios[0].play(); }
+function stopAll(){ audios.forEach(a=>{a.pause(); a.currentTime=0;}); }
+render();
+</script>
+</body>
+</html>
