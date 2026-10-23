@@ -7,12 +7,42 @@ export default function Header() {
   const { locale, setLocale, t } = useI18n();
   const [role, setRole] = useState<string | null>(null);
   const [teacher, setTeacher] = useState<string | null>(null);
+  const [student, setStudent] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      // اجعل تسجيل الخروج شاملاً — استدعِ كليهما ثم اذهب للصفحة المناسبة
+      const resTeacher = await fetch("/api/auth/teacher-session").then(r=>r.json()).catch(()=>null);
+      if (teacher || resTeacher?.success) {
+        await fetch("/api/auth/teacher-logout", { method: "POST", headers: { accept: "application/json" } }).catch(()=>{});
+        await fetch("/api/auth/student-logout", { method: "POST", headers: { accept: "application/json" } }).catch(()=>{});
+        window.location.href = "/teacher-login";
+        return;
+      }
+      // افترض طالبة
+      await fetch("/api/auth/student-logout", { method: "POST", headers: { accept: "application/json" } }).catch(()=>{});
+      await fetch("/api/auth/teacher-logout", { method: "POST", headers: { accept: "application/json" } }).catch(()=>{});
+      window.location.href = "/student-login";
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   useEffect(() => {
     // جرب Supabase أولاً
     fetch("/api/me").then(r => r.json()).then(j => { if (j.success) setRole(j.data.role); }).catch(()=>{});
     // ثم تحقق من جلسة الأستاذة الجديدة
     fetch("/api/auth/teacher-session").then(r => r.json()).then(j => { if (j.success) { setRole("teacher"); setTeacher(j.username); } }).catch(()=>{});
+    // تحقق من جلسة الطالبة — إن فشلت، استخدم وجود student_session كإشارة ثانوية عبر محاولة قراءة بيانات الطالبة إن وُجدت
+    fetch("/api/student/enrollments").then(r=>r.json()).then(j=>{
+      if (j.success && (j.data?.enrollments?.length>0 || j.data?.student_email)) {
+        setStudent(j.data.student_email || "طالبة");
+        if (!role) setRole("student");
+      }
+    }).catch(()=>{});
   }, []);
 
   return (
@@ -28,9 +58,23 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           {teacher ? (
-            <Link href={`/teacher/${teacher.toLowerCase()}`} className="hidden sm:inline-flex items-center gap-1.5 bg-[#E3B23C] text-[#0B3C49] rounded-xl px-3 py-2 text-xs font-black">
-              {teacher} • {locale === "ar" ? "صفحتي" : "My Page"}
-            </Link>
+            <>
+              <Link href={`/teacher/${teacher.toLowerCase()}`} className="hidden sm:inline-flex items-center gap-1.5 bg-[#E3B23C] text-[#0B3C49] rounded-xl px-3 py-2 text-xs font-black">
+                {teacher} • {locale === "ar" ? "صفحتي" : "My Page"}
+              </Link>
+              <button onClick={handleLogout} disabled={loggingOut} className="inline-flex items-center gap-1.5 bg-white text-[#0B3C49] rounded-xl px-3 py-2 text-xs font-black disabled:opacity-60">
+                {loggingOut ? "…" : (locale === "ar" ? "خروج" : "Logout")}
+              </button>
+            </>
+          ) : student ? (
+            <>
+              <Link href="/student" className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-900 rounded-xl px-3 py-2 text-xs font-black">
+                {locale === "ar" ? "صفحتي" : "My Page"}
+              </Link>
+              <button onClick={handleLogout} disabled={loggingOut} className="inline-flex items-center gap-1.5 bg-white text-[#0B3C49] rounded-xl px-3 py-2 text-xs font-black disabled:opacity-60">
+                {loggingOut ? "…" : (locale === "ar" ? "خروج" : "Logout")}
+              </button>
+            </>
           ) : (
             <Link href="/teacher-login" className="hidden sm:inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs font-bold">
               {locale === "ar" ? "دخول الأستاذة" : "Teacher Login"}

@@ -28,10 +28,15 @@ export default function StudentPage() {
         <h1 className="text-2xl font-black">مساحة الطالبة التفاعلية</h1>
         <p className="text-white/80 mt-2 text-sm">مرحباً {email} — يمكنك مشاهدة محاضرات أستاذتك وحفظ ملخصاتها ورؤية تقييماتك فقط</p>
         {isPreview && <p className="mt-3 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs">أنتِ أستاذة — هذه معاينة لما تراه الطالبة. لا يمكنك توليد Gemini هنا.</p>}
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/courses" className="px-4 py-2 rounded-xl bg-white text-[#0B3C49] text-xs font-black">مقرراتي</Link>
           <span className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-xs">بدون توليد Gemini</span>
+          <a href="/api/auth/student-logout" className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">تسجيل خروج</a>
         </div>
+        {/* تسجيل خروج يعمل حتى بدون JavaScript عبر GET */}
+        <form method="POST" action="/api/auth/student-logout" className="hidden">
+          <button type="submit">logout</button>
+        </form>
       </div>
 
       <div className="mt-6 bg-white rounded-3xl shadow border border-slate-100 p-6">

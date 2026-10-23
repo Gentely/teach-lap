@@ -1,15 +1,31 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Teacher } from "@/lib/teachers";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 
 export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) {
+  const router = useRouter();
   const { locale } = useI18n();
   const isRTL = locale === "ar";
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      // امسح جلسة الأستاذة والطالبة معاً
+      await fetch("/api/auth/teacher-logout", { method: "POST", headers: { accept: "application/json" } });
+      await fetch("/api/auth/student-logout", { method: "POST", headers: { accept: "application/json" } }).catch(() => {});
+    } finally {
+      router.push("/teacher-login");
+      router.refresh();
+    }
+  }
 
   useEffect(() => {
     // جلب مقررات الأستاذة الحالية — فلترة حسب teacher_username الخاص بها
@@ -38,9 +54,13 @@ export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) 
           </div>
           <div className="flex gap-2">
             <Link href="/teacher-login" className="px-4 py-2 rounded-xl bg-white text-[#0B3C49] text-xs font-black">تغيير الحساب</Link>
-            <form action="/api/auth/teacher-logout" method="post">
-              <button className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">تسجيل خروج</button>
-            </form>
+            <button onClick={handleLogout} disabled={loggingOut} className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold disabled:opacity-60">
+              {loggingOut ? "..." : "تسجيل خروج"}
+            </button>
+            {/* احتياط بدون JS */}
+            <noscript>
+              <a href="/api/auth/teacher-logout" className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">تسجيل خروج</a>
+            </noscript>
           </div>
         </div>
       </div>

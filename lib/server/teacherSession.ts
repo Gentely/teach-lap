@@ -53,7 +53,17 @@ export function setTeacherSessionCookie(res: NextResponse, username: string) {
 }
 
 export function clearTeacherSessionCookie(res: NextResponse) {
-  res.cookies.set(COOKIE_NAME, "", { httpOnly: true, path: "/", maxAge: 0 });
+  // يجب أن تطابق خصائص الإنشاء (secure/sameSite) لكي يمسح المتصفح الكوكي في الإنتاج
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookies.set(COOKIE_NAME, "", { httpOnly: true, secure: isProd, sameSite: "lax", path: "/", maxAge: 0 });
+  // احتياط: امسح أيضاً جلسة الطالبة إن كانت موجودة (تسجيل خروج كامل)
+  res.cookies.set("student_session", "", { httpOnly: true, secure: isProd, sameSite: "lax", path: "/", maxAge: 0 });
+}
+
+export function clearStudentSessionCookie(res: NextResponse) {
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookies.set("student_session", "", { httpOnly: true, secure: isProd, sameSite: "lax", path: "/", maxAge: 0 });
+  res.cookies.set(COOKIE_NAME, "", { httpOnly: true, secure: isProd, sameSite: "lax", path: "/", maxAge: 0 });
 }
 
 export function verifyCredentials(username: string, code: string): boolean {
