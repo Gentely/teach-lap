@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
+import Pagination from "@/components/Pagination";
 
 type Course = { id: string; teacher_id: string; title: string; code: string; description: string | null; created_at: string; students_count?: number; lectures_count?: number; isTeacher?: boolean };
 
@@ -16,6 +17,10 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
   // students
   const [students, setStudents] = useState<any[]>([]);
   const [enrollEmails, setEnrollEmails] = useState("");
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
+  const [studentOffset, setStudentOffset] = useState(0);
+  const studentPageSize = 8;
+  const pagedStudents = useMemo(() => students.slice(studentOffset, studentOffset + studentPageSize), [students, studentOffset]);
 
   // lectures
   const [lectures, setLectures] = useState<any[]>([]);
@@ -109,15 +114,26 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
       setMsg({ type: "success", text: isRTL ? `تم تسجيل ${j.added} طالب` : `Enrolled ${j.added} student(s)` });
       setEnrollEmails("");
       fetchStudents();
+      setStudentOffset(0);
     } catch (e: any) { setMsg({ type: "error", text: e.message }); }
   }
 
   async function handleRemoveStudent(email: string) {
-    if (!confirm(isRTL ? `إزالة ${email}؟` : `Remove ${email}?`)) return;
-    const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-    const j = await res.json();
-    if (j.success) fetchStudents();
-    else setMsg({ type: "error", text: j.error?.message });
+    if (!confirm(isRTL ? `هل أنت متأكد من حذف الطالب ${email} من هذا المقرر؟ سيُزال من القائمة فوراً.` : `Remove ${email} from this course?`)) return;
+    setDeletingEmail(email);
+    try {
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      const j = await res.json();
+      if (!j.success) throw new Error(j.error?.message);
+      setStudents(prev => prev.filter(s => s.student_email.toLowerCase() !== email.toLowerCase()));
+      setMsg({ type: "success", text: isRTL ? `تم حذف ${email}` : `Removed ${email}` });
+      // adjust pagination if needed
+      if (pagedStudents.length === 1 && studentOffset > 0) setStudentOffset(Math.max(0, studentOffset - studentPageSize));
+    } catch (e: any) {
+      setMsg({ type: "error", text: e.message });
+    } finally {
+      setDeletingEmail(null);
+    }
   }
 
   async function handlePublish() {
@@ -249,16 +265,42 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
                     <button onClick={handleEnroll} className="mt-2 px-4 py-2 rounded-xl bg-[#0F4C5C] text-white text-xs font-black">{isRTL ? "تسجيل الطلاب" : "Enroll students"}</button>
                   </div>
                   <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                    <div className="px-4 py-3 border-b bg-slate-50 font-black text-sm text-[#0B3C49]">{isRTL ? "القائمة" : "List"} ({students.length})</div>
+                    <div className="px-4 py-3 border-b bg-slate-50 font-black text-sm text-[#0B3C49] flex justify-between items-center">
+                      <span>{isRTL ? "القائمة" : "List"} ({students.length})</span>
+                      <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 rounded-full px-2 py-1">{students.length} {isRTL ? "طالب" : "total"}</span>
+                    </div>
                     {students.length === 0 ? <p className="p-6 text-center text-sm text-slate-500">{isRTL ? "لا يوجد طلاب مسجلون بعد" : "No students enrolled yet"}</p> : (
-                      <ul className="divide-y divide-slate-100">
-                        {students.map(s => (
-                          <li key={s.id} className="flex justify-between items-center px-4 py-3 text-sm">
-                            <span className="font-bold text-slate-700">{s.student_email}</span>
-                            <button onClick={() => handleRemoveStudent(s.student_email)} className="px-3 py-1 rounded-xl bg-white border border-red-200 text-red-600 text-xs font-bold">{isRTL ? "إزالة" : "Remove"}</button>
-                          </li>
-                        ))}
-                      </ul>
+                      <>
+                        <ul className="divide-y divide-slate-100">
+                          {pagedStudents.map(s => (
+                            <li key={s.id} className="flex justify-between items-center px-4 py-3 text-sm hover:bg-slate-50 transition">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-[#E3B23C] text-[#0B3C49] grid place-items-center text-xs font-black shrink-0">{s.student_email.charAt(0).toUpperCase()}</div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-700 block truncate max-w-[160px] sm:max-w-none">{s.student_email}</span>
+                                  <span className="text-[10px] text-slate-400">{new Date(s.enrolled_at).toLocaleDateString(isRTL ? "ar-EG" : "en-US")}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  onClick={() => handleRemoveStudent(s.student_email)}
+                                  disabled={deletingEmail === s.student_email}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${deletingEmail === s.student_email ? "bg-slate-100 text-slate-400 border-slate-200 cursor-wait" : "bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"}`}
+                                  title={isRTL ? "حذف الطالب" : "Delete student"}
+                                >
+                                  {deletingEmail === s.student_email ? (isRTL ? "جاري الحذف…" : "Removing…") : (<><span className="hidden sm:inline">{isRTL ? "حذف" : "Delete"}</span> <span>🗑</span><span className="hidden sm:inline"> {isRTL ? "الطالب" : ""}</span></>)}
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                        <Pagination total={students.length} limit={studentPageSize} offset={studentOffset} onChange={setStudentOffset} />
+                        <div className="flex justify-between items-center px-4 py-3 bg-slate-50 border-t">
+                          <button onClick={() => setStudentOffset(Math.max(0, studentOffset - studentPageSize))} disabled={studentOffset === 0} className={`px-4 py-2 rounded-xl text-xs font-black border ${studentOffset === 0 ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-white text-[#0B3C49] border-slate-200 hover:bg-slate-50"}`}>{isRTL ? "› السابق" : "< Prev"}</button>
+                          <span className="text-xs text-slate-500 font-bold">{isRTL ? `صفحة ${Math.floor(studentOffset / studentPageSize) + 1} من ${Math.ceil(students.length / studentPageSize)}` : `Page ${Math.floor(studentOffset / studentPageSize) + 1} of ${Math.ceil(students.length / studentPageSize)}`}</span>
+                          <button onClick={() => setStudentOffset(Math.min(students.length - 1, studentOffset + studentPageSize))} disabled={studentOffset + studentPageSize >= students.length} className={`px-4 py-2 rounded-xl text-xs font-black border ${studentOffset + studentPageSize >= students.length ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-[#0B3C49] text-white border-[#0B3C49] hover:bg-[#0F4C5C]"}`}>{isRTL ? "التالي ‹" : "Next >"}</button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </>
@@ -359,6 +401,10 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
             </div>
           )}
         </div>
+      </div>
+      <div className="mt-6 flex justify-between">
+        <Link href="/courses" className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50">‹ {isRTL ? "كل المقررات" : "All courses"}</Link>
+        <Link href="/" className="px-4 py-2 rounded-xl bg-[#0B3C49] text-white text-xs font-black hover:bg-[#0F4C5C]">{isRTL ? "توليد محاضرة جديدة" : "Generate lecture"} ›</Link>
       </div>
     </div>
   );
