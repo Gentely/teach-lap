@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { generateMarkdown } from "@/lib/markdown";
 import ExportButtons from "@/components/ExportButtons";
 import HistoryPanel from "@/components/HistoryPanel";
+import GenerationSummary from "@/components/GenerationSummary";
 import Link from "next/link";
 
 function formatBytes(bytes: number) {
@@ -159,26 +160,53 @@ export default function HomePage() {
       </div>
 
       {result && (
-        <section className="mt-6 bg-white rounded-3xl shadow border border-slate-100 p-6 space-y-4">
-          <div className="flex flex-wrap gap-3 justify-between items-start">
-            <h3 className="font-black text-[#0B3C49]">{t.resultsTitle}</h3>
-            {resultMeta?.savedLectureId && <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">{t.currentResultSavedNote}</span>}
+        <section className="mt-6 space-y-4">
+          <div className="bg-white rounded-3xl shadow border border-slate-100 p-6">
+            <div className="flex flex-wrap gap-3 justify-between items-start">
+              <h3 className="font-black text-[#0B3C49]">{t.resultsTitle}</h3>
+              {resultMeta?.savedLectureId && <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">{t.currentResultSavedNote}</span>}
+            </div>
+
+            {/* === الملخصات الجديدة === */}
+            <div className="mt-4">
+              <GenerationSummary data={result} title={title || text.slice(0, 60)} outputLanguage={lang} />
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-black text-[#0B3C49] mb-3">{t.currentResultExportTitle}</p>
+              <ExportButtons markdown={currentMarkdown} title={title || text.slice(0, 30) || "lecture"} />
+            </div>
+            <details className="mt-4 rounded-2xl border border-slate-100 bg-white">
+              <summary className="px-4 py-3 text-xs font-bold text-slate-700 cursor-pointer">{isRTL ? "معاينة Markdown الكامل" : "Preview full Markdown"}</summary>
+              <pre className="text-xs leading-6 p-4 bg-slate-50 rounded-xl overflow-auto max-h-96 whitespace-pre-wrap break-words m-3 border border-slate-100">{currentMarkdown}</pre>
+            </details>
           </div>
-          <p className="text-sm leading-7 bg-[#F2F9FB] border border-[#E6F2F5] rounded-2xl p-4 whitespace-pre-wrap">{result.summary}</p>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-black text-[#0B3C49] mb-3">{t.currentResultExportTitle}</p>
-            <ExportButtons markdown={currentMarkdown} title={title || text.slice(0, 30) || "lecture"} />
+
+          {/* Page navigation < > */}
+          <div className="flex justify-between items-center">
+            <button onClick={() => { setResult(null); setResultMeta(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 flex items-center gap-1.5">
+              <span className="text-base leading-none">{isRTL ? "›" : "<"}</span> {isRTL ? "إنشاء جديد" : "New generation"}
+            </button>
+            <Link href="/courses" className="px-5 py-2.5 rounded-xl bg-[#0B3C49] text-white text-xs font-black hover:bg-[#0F4C5C] flex items-center gap-1.5">
+              {isRTL ? "مقرراتي" : "My courses"} <span className="text-base leading-none">{isRTL ? "‹" : ">"}</span>
+            </Link>
           </div>
-          <details className="rounded-2xl border border-slate-100 bg-white">
-            <summary className="px-4 py-3 text-xs font-bold text-slate-700 cursor-pointer">{isRTL ? "معاينة Markdown الكامل" : "Preview full Markdown"}</summary>
-            <pre className="text-xs leading-6 p-4 bg-slate-50 rounded-xl overflow-auto max-h-96 whitespace-pre-wrap break-words m-3 border border-slate-100">{currentMarkdown}</pre>
-          </details>
-          <pre className="text-xs bg-slate-50 p-4 rounded-xl overflow-auto max-h-[400px] border border-slate-100">{JSON.stringify(result, null, 2)}</pre>
         </section>
       )}
 
       <div className="mt-8">
         <HistoryPanel refreshKey={historyRefresh} />
+      </div>
+
+      {/* Bottom page navigation < > */}
+      <div className="mt-6 flex justify-center gap-3">
+        <Link href="/courses" className="px-6 py-3 rounded-xl bg-white border border-slate-200 text-[#0B3C49] text-xs font-black hover:bg-slate-50 flex items-center gap-2">
+          <span>{isRTL ? "‹" : "<"}</span> {isRTL ? "السابق: مقرراتي" : "Prev: My Courses"}
+        </Link>
+        <span className="px-4 py-3 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold">{isRTL ? "الرئيسية" : "Home"} • {historyRefresh > 0 ? `${historyRefresh} ${isRTL ? "محاضرة مولدة" : "generated"}` : isRTL ? "ابدأ التوليد" : "Start generating"}</span>
+        <Link href="/courses" className="px-6 py-3 rounded-xl bg-[#0F4C5C] text-white text-xs font-black hover:bg-[#0B3C49] flex items-center gap-2">
+          {isRTL ? "التالي: مقرراتي" : "Next: My Courses"} <span>{isRTL ? "›" : ">"}</span>
+        </Link>
       </div>
     </div>
   );

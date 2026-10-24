@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
+import Pagination from "@/components/Pagination";
 
 type Course = {
   id: string;
@@ -25,7 +26,13 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // pagination
+  const pageSize = 6;
+  const [offset, setOffset] = useState(0);
+
   const isTeacher = role === "teacher" || role === "admin";
+
+  const pagedCourses = useMemo(() => courses.slice(offset, offset + pageSize), [courses, offset]);
 
   async function fetchCourses() {
     setLoading(true);
@@ -35,6 +42,7 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
       if (!j.success) throw new Error(j.error?.message);
       setCourses(j.data || []);
       if (j.role) setRole(j.role);
+      setOffset(0);
     } catch (e: any) {
       setMsg({ type: "error", text: e.message });
     } finally {
@@ -72,7 +80,12 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
       const res = await fetch(`/api/courses/${id}`, { method: "DELETE" });
       const j = await res.json();
       if (!j.success) throw new Error(j.error?.message);
-      setCourses(prev => prev.filter(c => c.id !== id));
+      setCourses(prev => {
+        const filtered = prev.filter(c => c.id !== id);
+        // adjust offset if page empty
+        if (filtered.length <= offset && offset > 0) setOffset(Math.max(0, offset - pageSize));
+        return filtered;
+      });
     } catch (e: any) {
       setMsg({ type: "error", text: e.message });
     }
@@ -120,24 +133,31 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
             {!isTeacher && <Link href="/" className="mt-3 inline-block text-xs font-bold text-[#0F4C5C] underline">{isRTL ? "العودة للرئيسية" : "Back to home"}</Link>}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-            {courses.map(c => (
-              <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5 hover:shadow-md transition">
-                <div className="flex justify-between items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-black text-[#0B3C49] text-sm truncate">{c.title}</h3>
-                    <p className="text-xs font-bold text-[#0F4C5C] mt-1">{c.code}</p>
-                    {c.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>}
-                    <p className="text-[11px] text-slate-400 mt-2">{new Date(c.created_at).toLocaleDateString(isRTL ? "ar-EG" : "en-US")} • {c.students_count ?? 0} {isRTL ? "طلاب" : "students"}</p>
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+              {pagedCourses.map(c => (
+                <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5 hover:shadow-md transition">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-[#0B3C49] text-sm truncate">{c.title}</h3>
+                      <p className="text-xs font-bold text-[#0F4C5C] mt-1">{c.code}</p>
+                      {c.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>}
+                      <p className="text-[11px] text-slate-400 mt-2">{new Date(c.created_at).toLocaleDateString(isRTL ? "ar-EG" : "en-US")} • {c.students_count ?? 0} {isRTL ? "طلاب" : "students"}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Link href={`/courses/${c.id}`} className="flex-1 text-center py-2 rounded-xl bg-[#0F4C5C] text-white text-xs font-black">{isRTL ? "فتح" : "Open"}</Link>
+                    {isTeacher && <button onClick={() => handleDelete(c.id)} className="px-3 py-2 rounded-xl bg-white border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50">{isRTL ? "حذف" : "Delete"}</button>}
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  <Link href={`/courses/${c.id}`} className="flex-1 text-center py-2 rounded-xl bg-[#0F4C5C] text-white text-xs font-black">{isRTL ? "فتح" : "Open"}</Link>
-                  {isTeacher && <button onClick={() => handleDelete(c.id)} className="px-3 py-2 rounded-xl bg-white border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50">{isRTL ? "حذف" : "Delete"}</button>}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            <Pagination total={courses.length} limit={pageSize} offset={offset} onChange={setOffset} loading={loading} />
+            <div className="flex justify-center gap-2 px-4 pb-4 -mt-2">
+              <Link href="/" className="text-xs font-bold text-slate-500 hover:text-[#0F4C5C] border border-slate-200 rounded-xl px-4 py-2 bg-white">‹ {isRTL ? "الرئيسية" : "Home"}</Link>
+              <Link href={`/courses/${pagedCourses[0]?.id || ""}`} className={`text-xs font-bold rounded-xl px-4 py-2 ${pagedCourses[0] ? "bg-[#0B3C49] text-white" : "bg-slate-100 text-slate-400 pointer-events-none"}`}>{isRTL ? "عرض المقرر" : "View course"} ›</Link>
+            </div>
+          </>
         )}
       </div>
 
