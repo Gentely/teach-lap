@@ -96,8 +96,6 @@ export default function Header() {
               <option value="ar" className="text-black">العربية</option>
             </select>
           </label>
-
-          <span className="hidden lg:inline-flex text-xs bg-white/10 border border-white/20 rounded-full px-3 py-1.5">{t.headerBadge}</span>
         </div>
       </div>
     </header>

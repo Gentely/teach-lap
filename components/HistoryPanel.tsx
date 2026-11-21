@@ -18,7 +18,7 @@ type Lecture = {
 };
 
 export default function HistoryPanel({ refreshKey }: { refreshKey?: number }) {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const isRTL = locale === "ar";
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +85,6 @@ export default function HistoryPanel({ refreshKey }: { refreshKey?: number }) {
           <h3 className="font-black text-[#0B3C49] text-sm">
             {isRTL ? "سجل محاضراتي" : "My Lecture History"} <span className="font-normal text-slate-500">({total})</span>
           </h3>
-          <p className="text-[11px] text-slate-500 mt-1">{isRTL ? "محفوظ تلقائياً في Supabase ومرتبط بحسابك فقط" : "Auto-saved to Supabase, linked to your account only"}</p>
         </div>
         <div className="flex gap-2">
           <input
