@@ -2,3 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 html[lang="ar"] body { font-family: 'Tajawal', system-ui, sans-serif; }
+
+/* App is designed light-only. Declare it so forced-dark browsers (Android Chrome
+   "Force dark pages", system dark mode) don't invert the theme. */
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  /* Prevent accidental horizontal scroll from long unbroken strings (LTR titles, codes) */
+  overflow-x: hidden;
+}
+
+/* Long LTR strings (titles, emails, codes) never force the layout wider than the screen */
+.min-w-0,
+[class~="text-balance"] {
+  min-width: 0;
+}
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+pre,
+code {
+  overflow-wrap: anywhere;
+}
