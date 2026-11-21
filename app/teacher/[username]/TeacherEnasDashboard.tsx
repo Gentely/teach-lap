@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Teacher } from "@/lib/teachers";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { apiFetch, safeJson, friendlyError } from "@/lib/api-fetch";
 
 export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) 
   const isRTL = locale === "ar";
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -30,13 +32,24 @@ export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) 
   useEffect(() => {
     // جلب مقررات الأستاذة الحالية — فلترة حسب teacher_username الخاص بها
     const myUser = teacher.username.toLowerCase();
-    fetch("/api/courses").then(r => r.json()).then(j => {
-      if (j.success) {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch("/api/courses");
+        const j = await safeJson(res);
+        if (!res.ok || !j?.success) throw new Error(j?.error?.message || "");
+        if (cancelled) return;
         const filtered = (j.data || []).filter((c: any) => (c.teacher_username || "").toLowerCase() === myUser);
         setCourses(filtered);
+        setLoadError(null);
+      } catch (e: any) {
+        if (!cancelled) setLoadError(friendlyError(e, isRTL));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -107,6 +120,7 @@ export default function TeacherEnasDashboard({ teacher }: { teacher: Teacher }) 
 
           <div className="bg-white rounded-3xl shadow border border-slate-100 p-6">
             <h3 className="font-black text-[#0B3C49]">{isRTL ? "مقرراتي المنشأة" : "My Created Courses"}</h3>
+            {loadError && <p className="text-xs text-red-600 font-bold mt-3">{loadError}</p>}
             {loading ? <p className="text-sm text-slate-500 mt-3">Loading…</p> : courses.length === 0 ? (
               <p className="text-sm text-slate-500 mt-3">{isRTL ? "لا يوجد مقررات بعد — سننشئها لك تلقائياً حسب موادك أعلاه" : "No courses yet — we will auto-create them from your subjects above"}</p>
             ) : (

@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
+import { apiFetch, safeJson, friendlyError } from "@/lib/api-fetch";
 
 type Course = {
   id: string;
@@ -25,6 +26,7 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
   const [desc, setDesc] = useState("");
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // pagination
   const pageSize = 6;
@@ -36,15 +38,16 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
 
   async function fetchCourses() {
     setLoading(true);
+    setLoadError(null);
     try {
-      const res = await fetch("/api/courses");
-      const j = await res.json();
-      if (!j.success) throw new Error(j.error?.message);
+      const res = await apiFetch("/api/courses");
+      const j = await safeJson(res);
+      if (!res.ok || !j?.success) throw new Error(j?.error?.message || "");
       setCourses(j.data || []);
       if (j.role) setRole(j.role);
       setOffset(0);
     } catch (e: any) {
-      setMsg({ type: "error", text: e.message });
+      setLoadError(friendlyError(e, isRTL));
     } finally {
       setLoading(false);
     }
@@ -57,18 +60,18 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
     setCreating(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/courses", {
+      const res = await apiFetch("/api/courses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), code: code.trim(), description: desc.trim() || null }),
       });
-      const j = await res.json();
-      if (!j.success) throw new Error(j.error?.message);
+      const j = await safeJson(res);
+      if (!j?.success) throw new Error(j?.error?.message || "");
       setTitle(""); setCode(""); setDesc("");
       setMsg({ type: "success", text: isRTL ? "تم إنشاء المقرر" : "Course created" });
       await fetchCourses();
     } catch (e: any) {
-      setMsg({ type: "error", text: e.message });
+      setMsg({ type: "error", text: friendlyError(e, isRTL) });
     } finally {
       setCreating(false);
     }
@@ -77,9 +80,9 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
   async function handleDelete(id: string) {
     if (!confirm(isRTL ? "حذف هذا المقرر وكل سجلاته؟" : "Delete this course and all its records?")) return;
     try {
-      const res = await fetch(`/api/courses/${id}`, { method: "DELETE" });
-      const j = await res.json();
-      if (!j.success) throw new Error(j.error?.message);
+      const res = await apiFetch(`/api/courses/${id}`, { method: "DELETE" });
+      const j = await safeJson(res);
+      if (!j?.success) throw new Error(j?.error?.message || "");
       setCourses(prev => {
         const filtered = prev.filter(c => c.id !== id);
         // adjust offset if page empty
@@ -87,7 +90,7 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
         return filtered;
       });
     } catch (e: any) {
-      setMsg({ type: "error", text: e.message });
+      setMsg({ type: "error", text: friendlyError(e, isRTL) });
     }
   }
 
@@ -127,6 +130,11 @@ export default function CoursesClient({ initialRole, currentEmail }: { initialRo
 
         {loading ? (
           <div className="p-8 text-center text-sm text-slate-500">{isRTL ? "جاري التحميل…" : "Loading…"}</div>
+        ) : loadError ? (
+          <div className="p-6 text-center">
+            <p className="text-sm text-red-600 font-bold">{loadError}</p>
+            <button onClick={fetchCourses} className="mt-3 px-4 py-2 rounded-xl bg-[#0F4C5C] text-white text-xs font-black">↻ {isRTL ? "إعادة المحاولة" : "Retry"}</button>
+          </div>
         ) : courses.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-sm text-slate-500">{isTeacher ? (isRTL ? "لا يوجد مقررات بعد — أنشئ أول مقرر أعلاه" : "No courses yet — create your first course above") : (isRTL ? "لا يوجد مقررات مسجلة — سيضيفك أستاذك بالبريد" : "No enrolled courses — your teacher will add you by email")}</p>
