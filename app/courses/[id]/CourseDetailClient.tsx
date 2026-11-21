@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
+import { apiFetch, safeJson, friendlyError } from "@/lib/api-fetch";
 
 type Course = { id: string; teacher_id: string; title: string; code: string; description: string | null; created_at: string; students_count?: number; lectures_count?: number; isTeacher?: boolean };
 
@@ -26,6 +27,13 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
   const [lectures, setLectures] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [selectedLecture, setSelectedLecture] = useState("");
+  const [publishing, setPublishing] = useState(false);
+  const [unpublishingId, setUnpublishingId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [pickerOffset, setPickerOffset] = useState(0);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const pickerPageSize = 6;
 
   // records
   const [attendance, setAttendance] = useState<any[]>([]);
@@ -63,15 +71,26 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
   }
 
   async function fetchLectures() {
-    const res = await fetch(`/api/courses/${courseId}/lectures`);
-    const j = await res.json();
-    if (j.success) setLectures(j.data || []);
+    try {
+      const res = await apiFetch(`/api/courses/${courseId}/lectures`);
+      const j = await safeJson(res);
+      if (!res.ok || !j?.success) throw new Error(j?.error?.message || "");
+      setLectures(j.data || []);
+    } catch (e: any) {
+      setMsg({ type: "error", text: friendlyError(e, isRTL) });
+    }
   }
 
   async function fetchHistory() {
-    const res = await fetch("/api/history?limit=50");
-    const j = await res.json();
-    if (j.success) setHistory(j.data || []);
+    try {
+      const res = await apiFetch("/api/history?limit=50");
+      const j = await safeJson(res);
+      if (!res.ok || !j?.success) throw new Error(j?.error?.message || "");
+      setHistory(j.data || []);
+      setHistoryError(null);
+    } catch (e: any) {
+      setHistoryError(friendlyError(e, isRTL));
+    }
   }
 
   async function fetchRecords(type: string) {
@@ -99,7 +118,21 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
     if (tab === "attendance") fetchRecords("attendance");
     if (tab === "coursework") fetchRecords("coursework");
     if (tab === "exams") fetchRecords("exams");
-  }, [tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, isTeacher]);
+
+  // Load history as soon as the course (and its teacher flag) is known
+  useEffect(() => {
+    if (course && isTeacher) fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course]);
+
+  // Auto-dismiss feedback toast after a few seconds
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(null), 5000);
+    return () => clearTimeout(t);
+  }, [msg]);
 
   async function handleEnroll() {
     if (!enrollEmails.trim()) return;
@@ -137,24 +170,46 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
   }
 
   async function handlePublish() {
-    if (!selectedLecture) return;
+    if (!selectedLecture) {
+      setMsg({ type: "error", text: isRTL ? "اختر محاضرة أولاً ثم اضغط نشر" : "Pick a lecture first, then publish" });
+      return;
+    }
+    setPublishing(true);
+    setMsg(null);
     try {
-      const res = await fetch(`/api/courses/${courseId}/lectures`, {
+      const res = await apiFetch(`/api/courses/${courseId}/lectures`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lecture_id: selectedLecture }),
       });
-      const j = await res.json();
-      if (!j.success) throw new Error(j.error?.message);
-      setMsg({ type: "success", text: isRTL ? "تم النشر" : "Published" });
-      fetchLectures();
-    } catch (e: any) { setMsg({ type: "error", text: e.message }); }
+      const j = await safeJson(res);
+      if (!j?.success) throw new Error(j?.error?.message || "");
+      setMsg({ type: "success", text: isRTL ? "تم نشر المحاضرة بنجاح ✓" : "Lecture published ✓" });
+      setSelectedLecture("");
+      setPickerOpen(false);
+      setPickerSearch("");
+      await fetchLectures();
+    } catch (e: any) {
+      setMsg({ type: "error", text: friendlyError(e, isRTL) });
+    } finally {
+      setPublishing(false);
+    }
   }
 
   async function handleUnpublish(lecture_id: string) {
-    const res = await fetch(`/api/courses/${courseId}/lectures`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lecture_id }) });
-    const j = await res.json();
-    if (j.success) fetchLectures();
+    if (unpublishingId) return;
+    setUnpublishingId(lecture_id);
+    try {
+      const res = await apiFetch(`/api/courses/${courseId}/lectures`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lecture_id }) });
+      const j = await safeJson(res);
+      if (!res.ok || !j?.success) throw new Error(j?.error?.message || "");
+      setMsg({ type: "success", text: isRTL ? "تم إلغاء نشر المحاضرة" : "Lecture unpublished" });
+      await fetchLectures();
+    } catch (e: any) {
+      setMsg({ type: "error", text: friendlyError(e, isRTL) });
+    } finally {
+      setUnpublishingId(null);
+    }
   }
 
   async function addRecord(type: string) {
@@ -191,6 +246,23 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
     } else setMsg({ type: "error", text: j.error?.message });
   }
 
+  const publishedIds = useMemo(() => new Set(lectures.map((l: any) => l?.lecture?.id).filter(Boolean)), [lectures]);
+  const pickedLecture = history.find(h => h.id === selectedLecture) || null;
+  const editedLabel = pickedLecture
+    ? `${pickedLecture.title || pickedLecture.original_text?.slice(0, 40) || pickedLecture.id} — ${new Date(pickedLecture.created_at).toLocaleDateString()}`
+    : (isRTL ? "اختر محاضرة…" : "Choose lecture…");
+  const filteredHistory = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return history;
+    return history.filter(h =>
+      String(h?.title || "").toLowerCase().includes(q) ||
+      String(h?.original_text || "").toLowerCase().includes(q)
+    );
+  }, [history, pickerSearch]);
+  const pagedHistory = useMemo(() => filteredHistory.slice(pickerOffset, pickerOffset + pickerPageSize), [filteredHistory, pickerOffset]);
+  const totalPages = Math.max(1, Math.ceil(filteredHistory.length / pickerPageSize));
+  const currentPage = Math.min(totalPages, Math.floor(pickerOffset / pickerPageSize) + 1);
+
   if (loading) return <div className="max-w-6xl mx-auto px-4 py-8 text-center">Loading…</div>;
   if (!course) return <div className="max-w-6xl mx-auto px-4 py-8 text-center text-red-600">{msg?.text || "Course not found"}</div>;
 
@@ -200,9 +272,9 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
 
       <div className="mt-4 bg-white rounded-3xl shadow border border-slate-100 overflow-hidden">
         <div className="bg-gradient-to-br from-[#0B3C49] via-[#0F4C5C] to-[#14657A] text-white p-8">
-          <h1 className="text-2xl font-black">{course.title} <span className="ms-2 text-sm font-bold bg-white/20 border border-white/20 rounded-full px-3 py-1">{course.code}</span></h1>
-          {course.description && <p className="text-white/80 mt-2 text-sm">{course.description}</p>}
-          <p className="text-white/60 text-xs mt-2">{new Date(course.created_at).toLocaleDateString(isRTL ? "ar-EG" : "en-US")} • {course.students_count ?? students.length} {isRTL ? "طلاب" : "students"} • Role: {role} {isTeacher ? (isRTL ? "(أستاذ)" : "(Teacher)") : (isRTL ? "(طالب)" : "(Student)")}</p>
+          <h1 className="text-2xl font-black break-words">{course.title} <span className="inline-block ms-2 text-sm font-bold bg-white/20 border border-white/20 rounded-full px-3 py-1 break-words">{course.code}</span></h1>
+          {course.description && <p className="text-white/80 mt-2 text-sm break-words">{course.description}</p>}
+          <p className="text-white/60 text-xs mt-2 break-words">{new Date(course.created_at).toLocaleDateString(isRTL ? "ar-EG" : "en-US")} • {course.students_count ?? students.length} {isRTL ? "طلاب" : "students"} • Role: {role} {isTeacher ? (isRTL ? "(أستاذ)" : "(Teacher)") : (isRTL ? "(طالب)" : "(Student)")}</p>
         </div>
 
         <div className="flex flex-wrap gap-2 p-4 bg-slate-50 border-b">
@@ -223,17 +295,97 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
           {tab === "lectures" && (
             <div className="space-y-6">
               {isTeacher && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="font-black text-sm text-[#0B3C49]">{isRTL ? "نشر محاضرة في المقرر" : "Publish lecture to course"}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{isRTL ? "اختر محاضرة من سجلك لنشرها — سيظهر لطلابك في مقررهم." : "Choose a lecture from your history to publish — students will see it in their course."}</p>
-                  <div className="flex gap-2 mt-3">
-                    <select value={selectedLecture} onChange={e => setSelectedLecture(e.target.value)} className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white">
-                      <option value="">{isRTL ? "اختر محاضرة…" : "Choose lecture…"}</option>
-                      {history.map(h => <option key={h.id} value={h.id}>{h.title || h.original_text?.slice(0, 40) || h.id} — {new Date(h.created_at).toLocaleDateString()}</option>)}
-                    </select>
-                    <button onClick={handlePublish} className="px-4 py-2 rounded-xl bg-[#0F4C5C] text-white text-xs font-black">{isRTL ? "نشر" : "Publish"}</button>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                  <div>
+                    <h3 className="font-black text-sm text-[#0B3C49]">{isRTL ? "نشر محاضرة في المقرر" : "Publish lecture to course"}</h3>
+                    <p className="text-xs text-slate-500 mt-1">{isRTL ? "اختر محاضرة من سجلك لنشرها — سيظهر لطلاب المقرر." : "Choose a lecture from your history to publish — students will see it in their course."}</p>
                   </div>
-                  {history.length === 0 && <p className="text-xs text-slate-400 mt-2">{isRTL ? "لا يوجد محاضرات في سجلك — ولّد واحدة أولاً" : "No lectures in your history — generate one first"}</p>}
+
+                  {historyError ? (
+                    <p className="text-xs text-red-600 font-bold">{historyError}</p>
+                  ) : history.length === 0 ? (
+                    <p className="text-xs text-slate-400">{isRTL ? "لا يوجد محاضرات في سجلك — ولّد واحدة أولاً" : "No lectures in your history — generate one first"}</p>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { setPickerOpen(true); setPickerSearch(""); setPickerOffset(0); }}
+                        aria-haspopup="dialog"
+                        aria-expanded={pickerOpen}
+                        className="w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm text-start text-slate-700 flex items-center justify-between gap-3 hover:border-[#0F4C5C] transition"
+                      >
+                        <span className="truncate min-w-0">{editedLabel}</span>
+                        <svg className="w-4 h-4 shrink-0 text-[#0F4C5C]" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.937a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handlePublish}
+                        disabled={!selectedLecture || publishing}
+                        className="w-full py-3 rounded-xl bg-[#0F4C5C] text-white text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-[#0B3C49]"
+                      >
+                        {publishing ? (isRTL ? "جاري النشر…" : "Publishing…") : (isRTL ? "نشر المحاضرة" : "Publish lecture")}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {pickerOpen && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" dir={isRTL ? "rtl" : "ltr"} role="dialog" aria-modal="true" aria-label={isRTL ? "اختر محاضرة للنشر" : "Pick a lecture to publish"}>
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setPickerOpen(false)} aria-hidden="true" />
+                  <div className="relative w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="px-4 py-4 border-b flex items-center justify-between gap-3 shrink-0">
+                      <h4 className="font-black text-[#0B3C49] text-sm">{isRTL ? "اختر محاضرة للنشر" : "Pick a lecture to publish"}</h4>
+                      <button onClick={() => setPickerOpen(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700">{isRTL ? "إغلاق" : "Close"}</button>
+                    </div>
+                    <div className="px-4 pt-3 shrink-0">
+                      <input
+                        value={pickerSearch}
+                        onChange={e => { setPickerSearch(e.target.value); setPickerOffset(0); }}
+                        placeholder={isRTL ? "ابحث في المحاضرات…" : "Search lectures…"}
+                        className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0F4C5C]"
+                      />
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 min-h-0">
+                      {pagedHistory.map(h => {
+                        const already = publishedIds.has(h.id);
+                        const selected = h.id === selectedLecture;
+                        return (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => { if (!already) setSelectedLecture(selected ? "" : h.id); }}
+                            disabled={already}
+                            className={`w-full text-start flex items-center gap-3 rounded-2xl px-3 py-3 border transition ${selected ? "border-[#0F4C5C] bg-[#F2F9FB]" : "border-transparent hover:bg-slate-50"} ${already ? "opacity-60 cursor-not-allowed" : ""}`}
+                          >
+                            <span className={`w-5 h-5 rounded-full border-2 grid place-items-center shrink-0 ${selected ? "border-[#0F4C5C]" : "border-slate-300"}`}>
+                              {selected && <span className="w-2.5 h-2.5 rounded-full bg-[#0F4C5C]" />}
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-sm font-bold text-[#0B3C49] leading-snug line-clamp-2 break-words">{h.title || h.original_text?.slice(0, 60) || h.id}</span>
+                              <span className="block text-[11px] text-slate-400 mt-0.5 min-w-0 break-words">
+                                {new Date(h.created_at).toLocaleDateString(isRTL ? "ar-EG" : "en-US")}
+                                {already ? (isRTL ? " • منشورة في هذا المقرر" : " • already published") : ""}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {pagedHistory.length === 0 && <p className="text-center text-xs text-slate-400 py-8">{isRTL ? "لا توجد نتائج مطابقة" : "No matches"}</p>}
+                    </div>
+                    <div className="border-t px-4 py-2 flex items-center justify-between gap-2 bg-slate-50 shrink-0">
+                      <button type="button" disabled={currentPage <= 1} onClick={() => setPickerOffset(o => Math.max(0, o - pickerPageSize))} className="px-3 py-1.5 rounded-xl text-xs font-black border border-slate-200 bg-white text-slate-700 disabled:opacity-40">{isRTL ? "› السابق" : "< Prev"}</button>
+                      <span className="text-[11px] text-slate-500 font-bold">{isRTL ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}</span>
+                      <button type="button" disabled={currentPage >= totalPages} onClick={() => setPickerOffset(o => o + pickerPageSize)} className="px-3 py-1.5 rounded-xl text-xs font-black border border-slate-200 bg-white text-slate-700 disabled:opacity-40">{isRTL ? "التالي ‹" : "Next >"}</button>
+                    </div>
+                    <div className="p-4 border-t bg-white shrink-0 space-y-2">
+                      {msg && msg.type === "error" && <p className="rounded-xl border border-red-100 bg-red-50 p-2.5 text-xs text-red-600">{msg.text}</p>}
+                      <button type="button" onClick={handlePublish} disabled={!selectedLecture || publishing} className="w-full py-3 rounded-xl bg-[#0F4C5C] text-white text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-[#0B3C49]">
+                        {publishing ? (isRTL ? "جاري النشر…" : "Publishing…") : (isRTL ? "نشر المحاضرة المحددة" : "Publish selected lecture")}
+                      </button>
+                      <button type="button" onClick={() => setPickerOpen(false)} className="w-full py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50">{isRTL ? "إغلاق" : "Close"}</button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -246,7 +398,7 @@ export default function CourseDetailClient({ courseId, currentEmail, role, isAdm
                       <h4 className="font-bold text-sm text-[#0B3C49]">{cl.lecture?.title || (isRTL ? "بدون عنوان" : "Untitled")}</h4>
                       <p className="text-xs text-slate-500 mt-1">{new Date(cl.published_at).toLocaleString(isRTL ? "ar-EG" : "en-US")} • {cl.lecture?.output_language}</p>
                       <p className="text-xs leading-6 text-slate-700 mt-3 bg-[#F2F9FB] border border-[#E6F2F5] rounded-xl p-3 whitespace-pre-wrap max-h-60 overflow-auto">{cl.lecture?.generated_markdown?.slice(0, 3000) || JSON.stringify(cl.lecture?.generated_data?.summary || "").slice(0, 1000)}</p>
-                      {isTeacher && <button onClick={() => handleUnpublish(cl.lecture.id)} className="mt-3 px-3 py-1.5 rounded-xl bg-white border border-red-200 text-red-600 text-xs font-bold">{isRTL ? "إلغاء النشر" : "Unpublish"}</button>}
+                      {isTeacher && <button onClick={() => handleUnpublish(cl.lecture.id)} disabled={unpublishingId === cl.lecture.id} className="mt-3 px-3 py-1.5 rounded-xl bg-white border border-red-200 text-red-600 text-xs font-bold disabled:opacity-40">{unpublishingId === cl.lecture.id ? (isRTL ? "جارٍ الإلغاء…" : "Unpublishing…") : (isRTL ? "إلغاء النشر" : "Unpublish")}</button>}
                     </div>
                   ))}
                 </div>
